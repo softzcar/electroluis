@@ -58,65 +58,97 @@ const submit = async () => {
 </script>
 
 <template>
-  <div>
-    <h1 class="text-2xl font-semibold text-slate-800 mb-4">Repuestos</h1>
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl font-bold text-slate-800 mb-6">Repuestos</h1>
 
-    <form class="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-3" @submit.prevent="submit">
+    <form class="bg-white p-5 rounded-lg shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4" @submit.prevent="submit">
       <div>
-        <label class="block text-sm text-slate-600 mb-1">Nombre</label>
-        <input v-model="form.nombre" required class="w-full px-3 py-2 border border-slate-300 rounded-md">
+        <label class="block text-sm font-medium text-slate-600 mb-1">Nombre del Repuesto</label>
+        <input 
+          v-model="form.nombre" 
+          required 
+          placeholder="Ej. Condensador 10uF, Tarjeta lógica"
+          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
+        >
       </div>
       <div>
-        <label class="block text-sm text-slate-600 mb-1">Categoria</label>
-        <select v-model="form.id_categoria" required class="w-full px-3 py-2 border border-slate-300 rounded-md">
+        <label class="block text-sm font-medium text-slate-600 mb-1">Categoría</label>
+        <select 
+          v-model="form.id_categoria" 
+          required 
+          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow bg-white"
+        >
+          <option :value="null" disabled>Selecciona una categoría</option>
           <option v-for="cat in categorias" :key="cat.id" :value="cat.id">{{ cat.nombre }}</option>
         </select>
       </div>
       <div>
-        <label class="block text-sm text-slate-600 mb-1">Cantidad</label>
-        <input v-model.number="form.cantidad" type="number" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-md">
+        <label class="block text-sm font-medium text-slate-600 mb-1">Cantidad Inicial</label>
+        <input 
+          v-model.number="form.cantidad" 
+          type="number" 
+          min="0" 
+          placeholder="0"
+          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
+        >
       </div>
       <div>
-        <label class="block text-sm text-slate-600 mb-1">Ubicacion</label>
-        <input v-model="form.ubicacion" class="w-full px-3 py-2 border border-slate-300 rounded-md">
+        <label class="block text-sm font-medium text-slate-600 mb-1">Ubicación (Estante/Caja)</label>
+        <input 
+          v-model="form.ubicacion" 
+          placeholder="Ej. Pasillo A - Estante 2"
+          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
+        >
       </div>
-      <div class="col-span-2">
-        <label class="block text-sm text-slate-600 mb-1">Codigo de barras</label>
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-slate-600 mb-1">Código de barras</label>
         <input
           v-model="form.codigo_barras"
           data-barcode-input="true"
-          placeholder="Escanea o escribe el codigo"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md"
+          placeholder="Escanea con el lector o escribe el código"
+          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow font-mono"
         >
       </div>
-      <div class="col-span-2 flex justify-end">
-        <button type="submit" class="bg-slate-900 text-white px-4 py-2 rounded-md">Agregar repuesto</button>
+      <div class="sm:col-span-2 flex justify-end">
+        <button type="submit" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-md transition-colors shadow-sm">
+          Agregar repuesto
+        </button>
       </div>
     </form>
 
     <p v-if="errorMsg" class="text-sm text-red-600 mb-4">{{ errorMsg }}</p>
 
-    <div class="bg-white rounded-lg shadow overflow-x-auto">
+    <div class="bg-white rounded-lg shadow-sm overflow-x-auto border border-slate-100">
       <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-left text-slate-600">
+        <thead class="bg-slate-50 text-left text-slate-600 border-b border-slate-100">
           <tr>
-            <th class="px-4 py-2">Nombre</th>
-            <th class="px-4 py-2">Categoria</th>
-            <th class="px-4 py-2">Cantidad</th>
-            <th class="px-4 py-2">Ubicacion</th>
-            <th class="px-4 py-2">Codigo de barras</th>
+            <th class="px-5 py-3 font-semibold">Nombre</th>
+            <th class="px-5 py-3 font-semibold">Categoría</th>
+            <th class="px-5 py-3 font-semibold">Cantidad</th>
+            <th class="px-5 py-3 font-semibold">Ubicación</th>
+            <th class="px-5 py-3 font-semibold">Código de barras</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td class="px-4 py-3" colspan="5">Cargando...</td>
+            <td class="px-5 py-4 text-slate-500" colspan="5">Cargando repuestos...</td>
           </tr>
-          <tr v-for="rep in repuestos" v-else :key="rep.id" class="border-t border-slate-100">
-            <td class="px-4 py-2">{{ rep.nombre }}</td>
-            <td class="px-4 py-2">{{ rep.categorias?.nombre }}</td>
-            <td class="px-4 py-2">{{ rep.cantidad }}</td>
-            <td class="px-4 py-2">{{ rep.ubicacion }}</td>
-            <td class="px-4 py-2">{{ rep.codigo_barras }}</td>
+          <tr v-else-if="repuestos.length === 0">
+            <td class="px-5 py-4 text-slate-500 text-center" colspan="5">No hay repuestos registrados aún.</td>
+          </tr>
+          <tr v-for="rep in repuestos" v-else :key="rep.id" class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td class="px-5 py-3 font-medium text-slate-800">{{ rep.nombre }}</td>
+            <td class="px-5 py-3 text-slate-600">{{ rep.categorias?.nombre || '—' }}</td>
+            <td class="px-5 py-3">
+              <span 
+                class="px-2.5 py-1 rounded-full text-xs font-semibold"
+                :class="rep.cantidad > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
+              >
+                {{ rep.cantidad }} uds
+              </span>
+            </td>
+            <td class="px-5 py-3 text-slate-600">{{ rep.ubicacion || '—' }}</td>
+            <td class="px-5 py-3 text-slate-500 font-mono text-xs">{{ rep.codigo_barras || '—' }}</td>
           </tr>
         </tbody>
       </table>
