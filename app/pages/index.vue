@@ -51,7 +51,7 @@ const loadData = async () => {
     { data: mov, error: movErr }
   ] = await Promise.all([
     supabase.from('clientes').select('*').order('nombre'),
-    supabase.from('equipos').select('*').order('marca'),
+    supabase.from('equipos').select('*, marcas(nombre)'),
     supabase.from('repuestos').select('*').order('nombre'),
     supabase.from('movimientos').select('*, clientes(nombre)').order('id', { ascending: false })
   ])
@@ -62,7 +62,7 @@ const loadData = async () => {
   if (movErr) errorMsg.value = movErr.message
 
   clientes.value = cl ?? []
-  equipos.value = eq ?? []
+  equipos.value = (eq ?? []).sort((a: any, b: any) => (a.marcas?.nombre || '').localeCompare(b.marcas?.nombre || ''))
   repuestos.value = rep ?? []
   movimientos.value = mov ?? []
   loading.value = false
@@ -84,7 +84,7 @@ const filteredEquipos = computed(() => {
   if (!equipQuery.value) return []
   const q = equipQuery.value.toLowerCase()
   return equipos.value.filter(e => 
-    e.marca?.toLowerCase().includes(q) || 
+    e.marcas?.nombre?.toLowerCase().includes(q) || 
     e.modelo?.toLowerCase().includes(q)
   )
 })
@@ -113,7 +113,7 @@ const addEquipment = (eq: any) => {
   if (!selectedEquipos.value.find(item => item.id === eq.id)) {
     selectedEquipos.value.push({
       id: eq.id,
-      marca: eq.marca,
+      marca: eq.marcas?.nombre || eq.marca,
       modelo: eq.modelo,
       nro_serie: ''
     })
@@ -464,7 +464,7 @@ const submitMovement = async () => {
                   class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
                 >
                   <div>
-                    <p class="font-bold text-slate-800">{{ eq.marca }}</p>
+                    <p class="font-bold text-slate-800">{{ eq.marcas?.nombre }}</p>
                     <p class="text-xs text-slate-500">Modelo: {{ eq.modelo }}</p>
                   </div>
                   <span class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">

@@ -7,7 +7,7 @@ const errorMsg = ref('')
 
 const loadData = async () => {
   loading.value = true
-  const { data, error } = await supabase.from('equipos').select('*').order('id', { ascending: false })
+  const { data, error } = await supabase.from('equipos').select('*, marcas(nombre)').order('id', { ascending: false })
   if (error) errorMsg.value = error.message
   equipos.value = data ?? []
   loading.value = false
@@ -42,7 +42,7 @@ onMounted(loadData)
             <td class="px-5 py-4 text-slate-500 text-center" colspan="2">No hay equipos registrados aún.</td>
           </tr>
           <tr v-for="eq in equipos" v-else :key="eq.id" class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-            <td class="px-5 py-3 font-medium text-slate-800">{{ eq.marca }}</td>
+            <td class="px-5 py-3 font-medium text-slate-800">{{ eq.marcas?.nombre }}</td>
             <td class="px-5 py-3 text-slate-600">{{ eq.modelo }}</td>
           </tr>
         </tbody>

@@ -29,6 +29,13 @@ Catálogo de categorías de repuestos.
 - `nombre` text, unique, not null
 - `created_at`, `updated_at`
 
+### marcas
+Catálogo de marcas de equipos.
+
+- `id` PK
+- `nombre` text, unique, not null
+- `created_at`, `updated_at`
+
 ### repuestos
 
 - `id` PK
@@ -44,9 +51,8 @@ Un registro por aparato físico. Se reutiliza entre visitas (permite historial d
 por equipo vía `movimientos_equipos`).
 
 - `id` PK
-- `marca` text, not null
+- `id_marca` → `marcas.id`, not null
 - `modelo` text, not null
-- `nro_serie` text, unique, not null
 - `created_at`, `updated_at`
 
 ### clientes
@@ -84,6 +90,7 @@ Equipos atendidos en un movimiento.
 - `id` PK
 - `id_movimiento` → `movimientos.id`, not null, on delete cascade
 - `id_equipo` → `equipos.id`, not null
+- `nro_serie` text
 - `created_at`, `updated_at`
 
 ## Migraciones aplicadas
@@ -93,3 +100,5 @@ Equipos atendidos en un movimiento.
 3. `enable_rls_policies`
 4. `harden_functions` (search_path fijo + revoke execute en `handle_new_user`)
 5. `add_codigo_barras_to_repuestos`
+6. `update_equipos_serial`
+7. `create_marcas`

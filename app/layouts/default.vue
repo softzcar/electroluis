@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LayoutDashboard, Users, Cpu, Wrench, ClipboardList, Tags, LogOut, Menu as MenuIcon, X as XIcon } from 'lucide-vue-next'
+import { LayoutDashboard, Users, Cpu, Wrench, ClipboardList, Tags, LogOut, Menu as MenuIcon, X as XIcon, Bookmark } from 'lucide-vue-next'
 
 const supabase = useSupabaseClient()
 const router = useRouter()
@@ -12,7 +12,8 @@ const links = [
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/equipos', label: 'Equipos', icon: Cpu },
   { to: '/repuestos', label: 'Repuestos', icon: Wrench },
-  { to: '/categorias', label: 'Categorías', icon: Tags }
+  { to: '/categorias', label: 'Categorías', icon: Tags },
+  { to: '/marcas', label: 'Marcas', icon: Bookmark }
 ]
 
 const logout = async () => {
