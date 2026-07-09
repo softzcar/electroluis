@@ -8,12 +8,11 @@ const route = useRoute()
 const isMobileMenuOpen = ref(false)
 
 const links = [
-  { to: '/', label: 'Inicio', icon: LayoutDashboard },
+  { to: '/', label: 'Movimientos', icon: ClipboardList },
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/equipos', label: 'Equipos', icon: Cpu },
   { to: '/repuestos', label: 'Repuestos', icon: Wrench },
-  { to: '/categorias', label: 'Categorías', icon: Tags },
-  { to: '/movimientos', label: 'Movimientos', icon: ClipboardList }
+  { to: '/categorias', label: 'Categorías', icon: Tags }
 ]
 
 const logout = async () => {
@@ -31,7 +30,6 @@ watch(() => route.path, () => {
   <div class="min-h-screen flex flex-col md:flex-row bg-slate-100 text-slate-800">
     <!-- Encabezado Móvil (Solo visible en pantallas pequeñas) -->
     <header class="md:hidden flex items-center justify-between bg-slate-900 text-slate-100 px-4 py-3 shadow-md sticky top-0 z-40">
-      <span class="text-lg font-semibold tracking-wide">electroluis</span>
       <button 
         class="p-2 rounded-md hover:bg-slate-800 transition-colors focus:outline-none" 
         @click="isMobileMenuOpen = !isMobileMenuOpen"
@@ -39,6 +37,8 @@ watch(() => route.path, () => {
       >
         <component :is="isMobileMenuOpen ? XIcon : MenuIcon" :size="24" />
       </button>
+      <span class="text-lg font-semibold tracking-wide">electroluis</span>
+      <div class="w-10"></div> <!-- Espaciador para centrar el título -->
     </header>
 
     <!-- Fondo Oscuro Translúcido para Cerrar el Menú en Móvil -->
