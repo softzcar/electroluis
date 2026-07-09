@@ -397,7 +397,7 @@ const submitMovement = async () => {
             <button 
               type="button"
               @click="showClientModal = true"
-              class="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-2xl flex items-center justify-center transition-colors shrink-0"
+              class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 rounded-2xl border border-slate-200 flex items-center justify-center transition-colors shrink-0"
               title="Crear nuevo cliente"
             >
               <Plus class="h-5 w-5" />
@@ -480,7 +480,7 @@ const submitMovement = async () => {
             <button 
               type="button"
               @click="showEquipmentModal = true"
-              class="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-2xl flex items-center justify-center transition-colors shrink-0"
+              class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 rounded-2xl border border-slate-200 flex items-center justify-center transition-colors shrink-0"
               title="Crear nuevo equipo en catálogo"
             >
               <Plus class="h-5 w-5" />
@@ -598,7 +598,7 @@ const submitMovement = async () => {
             <button 
               type="button"
               @click="showRepuestoModal = true"
-              class="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-2xl flex items-center justify-center transition-colors shrink-0"
+              class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 rounded-2xl border border-slate-200 flex items-center justify-center transition-colors shrink-0"
               title="Crear nuevo repuesto"
             >
               <Plus class="h-5 w-5" />
