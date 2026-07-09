@@ -557,8 +557,9 @@ const submitMovement = async () => {
                 @focus="showRepuestoDropdown = true"
                 @blur="setTimeout(() => showRepuestoDropdown = false, 200)"
                 placeholder="Buscar repuesto por nombre o código..."
-                class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-950 focus:outline-none bg-slate-50 focus:bg-white transition-all text-sm"
+                class="w-full pl-10 pr-11 py-2.5 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-950 focus:outline-none bg-slate-50 focus:bg-white transition-all text-sm"
               >
+              <Barcode class="absolute right-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               
               <!-- Lista de sugerencias de Repuestos -->
               <div 
