@@ -19,6 +19,9 @@ const supabase = useSupabaseClient()
 const loading = ref(false)
 const errorMsg = ref('')
 const categorias = ref<any[]>([])
+const showCategoriaModal = ref(false)
+const newCategoriaNombre = ref('')
+const creatingCategoria = ref(false)
 
 const form = reactive({
   nombre: '',
@@ -34,6 +37,27 @@ const loadCategories = async () => {
 }
 
 onMounted(loadCategories)
+
+const createCategoria = async () => {
+  if (!newCategoriaNombre.value.trim()) return
+  creatingCategoria.value = true
+  const { data, error } = await supabase
+    .from('categorias')
+    .insert({ nombre: newCategoriaNombre.value.trim() })
+    .select()
+    .single()
+  creatingCategoria.value = false
+  if (error) {
+    alert(error.message)
+    return
+  }
+  newCategoriaNombre.value = ''
+  showCategoriaModal.value = false
+  await loadCategories()
+  if (data) {
+    form.id_categoria = data.id
+  }
+}
 
 // Escuchar el escáner de código de barras cuando el formulario esté visible
 useBarcodeScanner((code) => {
@@ -89,14 +113,24 @@ const submit = async () => {
       
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">Categoría</label>
-        <select 
-          v-model="form.id_categoria" 
-          required 
-          class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm bg-white"
-        >
-          <option :value="null" disabled>Selecciona una categoría</option>
-          <option v-for="cat in categorias" :key="cat.id" :value="cat.id">{{ cat.nombre }}</option>
-        </select>
+        <div class="flex gap-2">
+          <select 
+            v-model="form.id_categoria" 
+            required 
+            class="flex-1 px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm bg-white"
+          >
+            <option :value="null" disabled>Selecciona una categoría</option>
+            <option v-for="cat in categorias" :key="cat.id" :value="cat.id">{{ cat.nombre }}</option>
+          </select>
+          <button 
+            type="button"
+            @click="showCategoriaModal = true"
+            class="px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 font-bold transition-colors text-sm"
+            title="Agregar nueva categoría"
+          >
+            +
+          </button>
+        </div>
       </div>
       
       <div>
@@ -151,4 +185,34 @@ const submit = async () => {
       </button>
     </div>
   </form>
+
+  <!-- MODAL INLINE: Crear Nueva Categoría -->
+  <div v-if="showCategoriaModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-100" @click.stop>
+      <h3 class="text-lg font-bold text-slate-800 mb-4">Agregar Nueva Categoría</h3>
+      <input 
+        v-model="newCategoriaNombre"
+        placeholder="Nombre de la categoría (ej. Pantallas, Sensores)"
+        class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm mb-4"
+        @keyup.enter="createCategoria"
+      >
+      <div class="flex justify-end gap-2">
+        <button 
+          type="button" 
+          @click="showCategoriaModal = false"
+          class="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          @click="createCategoria"
+          :disabled="creatingCategoria"
+          class="px-4 py-2 bg-slate-950 text-white rounded-xl text-sm font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
