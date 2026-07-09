@@ -34,7 +34,16 @@ Se identificó y solucionó el inconveniente por el cual los navegadores basados
 * **Archivos modificados/eliminados**: [app/pages/index.vue](file:///dev2/electroluis/app/pages/index.vue), [app/pages/movimientos/index.vue](file:///dev2/electroluis/app/pages/movimientos/index.vue) (eliminado), y [app/layouts/default.vue](file:///dev2/electroluis/app/layouts/default.vue)
 * **Descripción**: Se eliminó la página de inicio original (que solo mostraba la bienvenida) y se trasladó el contenido de la página de movimientos para que sirva como la nueva raíz de la aplicación (`/`). En el menú lateral se eliminaron las opciones de "Inicio" y el duplicado de "Movimientos" del final, colocando "Movimientos" como la primera opción de navegación principal de la barra lateral.
 
+### 3. Formulario de Movimientos Avanzado
+* **Archivos modificados/creados**: [app/pages/index.vue](file:///dev2/electroluis/app/pages/index.vue), [app/pages/equipos/index.vue](file:///dev2/electroluis/app/pages/equipos/index.vue) y [supabase/migrations/update_equipos_serial.sql](file:///dev2/electroluis/supabase/migrations/update_equipos_serial.sql)
+* **Descripción**: Se renovó completamente el formulario de movimientos, integrando:
+  * **Typeahead/Búsqueda predictiva de Clientes**: Búsqueda interactiva por nombre o teléfono en lugar de un elemento `<select>` estático.
+  * **Typeahead de Equipos**: Permite buscar y agregar múltiples equipos a un solo movimiento de forma dinámica. Cada equipo seleccionado cuenta con su propio campo para registrar el **número de serie**.
+  * **Ubicación del Serial**: Se eliminó el campo de número de serie de la tabla de catálogo `equipos` y se movió a la tabla relacional `movimientos_equipos` mediante un script SQL, ya que el número de serie define al dispositivo traído por el cliente y no a la marca/modelo general del catálogo.
+  * **Typeahead de Repuestos y Código de Barras**: Permite la carga dinámica de repuestos (añadiendo cantidades y stock disponible en tiempo real). Es compatible con escritura manual y con el lector de códigos de barras mediante el composable `useBarcodeScanner`.
+  * **Eliminación interactiva**: Se añadieron botones de papelera de reciclaje (`Trash2` de Lucide) para quitar elementos de la lista fácilmente.
+
 ## Despliegue en Vercel
 Para probar los cambios directamente en el entorno de Vercel, se realizaron los siguientes pasos en Git:
-1. Commit de los archivos modificados/creados/movidos: `app/app.vue`, `nuxt.config.ts`, `app/middleware/auth.global.ts`, la carpeta `public/`, `app/layouts/default.vue`, `app/pages/index.vue`, `app/pages/movimientos/index.vue` y este archivo `gemini.md`.
+1. Commit de los archivos modificados/creados/movidos: `app/app.vue`, `nuxt.config.ts`, `app/middleware/auth.global.ts`, la carpeta `public/`, `app/layouts/default.vue`, `app/pages/index.vue`, `app/pages/movimientos/index.vue`, `app/pages/equipos/index.vue`, `supabase/migrations/update_equipos_serial.sql` y este archivo `gemini.md`.
 2. Push a la rama principal (`main`) para disparar el despliegue automático en Vercel.

@@ -7,8 +7,7 @@ const errorMsg = ref('')
 
 const form = reactive({
   marca: '',
-  modelo: '',
-  nro_serie: ''
+  modelo: ''
 })
 
 const loadData = async () => {
@@ -25,8 +24,7 @@ const submit = async () => {
   errorMsg.value = ''
   const { error } = await supabase.from('equipos').insert({
     marca: form.marca,
-    modelo: form.modelo,
-    nro_serie: form.nro_serie
+    modelo: form.modelo
   })
   if (error) {
     errorMsg.value = error.message
@@ -34,7 +32,6 @@ const submit = async () => {
   }
   form.marca = ''
   form.modelo = ''
-  form.nro_serie = ''
   await loadData()
 }
 </script>
@@ -43,7 +40,7 @@ const submit = async () => {
   <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-slate-800 mb-6">Equipos</h1>
 
-    <form class="bg-white p-5 rounded-lg shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4" @submit.prevent="submit">
+    <form class="bg-white p-5 rounded-lg shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4" @submit.prevent="submit">
       <div>
         <label class="block text-sm font-medium text-slate-600 mb-1">Marca</label>
         <input 
@@ -62,16 +59,7 @@ const submit = async () => {
           class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
         >
       </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Número de serie</label>
-        <input 
-          v-model="form.nro_serie" 
-          required 
-          placeholder="Ej. 123456789XYZ"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div class="sm:col-span-3 flex justify-end">
+      <div class="sm:col-span-2 flex justify-end">
         <button type="submit" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-md transition-colors shadow-sm">
           Agregar equipo
         </button>
@@ -86,20 +74,18 @@ const submit = async () => {
           <tr>
             <th class="px-5 py-3 font-semibold">Marca</th>
             <th class="px-5 py-3 font-semibold">Modelo</th>
-            <th class="px-5 py-3 font-semibold">Número de serie</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td class="px-5 py-4 text-slate-500" colspan="3">Cargando equipos...</td>
+            <td class="px-5 py-4 text-slate-500" colspan="2">Cargando equipos...</td>
           </tr>
           <tr v-else-if="equipos.length === 0">
-            <td class="px-5 py-4 text-slate-500 text-center" colspan="3">No hay equipos registrados aún.</td>
+            <td class="px-5 py-4 text-slate-500 text-center" colspan="2">No hay equipos registrados aún.</td>
           </tr>
           <tr v-for="eq in equipos" v-else :key="eq.id" class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
             <td class="px-5 py-3 font-medium text-slate-800">{{ eq.marca }}</td>
             <td class="px-5 py-3 text-slate-600">{{ eq.modelo }}</td>
-            <td class="px-5 py-3 text-slate-600 font-mono">{{ eq.nro_serie }}</td>
           </tr>
         </tbody>
       </table>
