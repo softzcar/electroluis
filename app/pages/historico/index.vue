@@ -4,7 +4,7 @@ import { useSupabaseClient } from '#imports'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
 import { 
   History, Users, Cpu, Wrench, Search, ChevronDown, ChevronUp, 
-  X, Filter, Calendar, Barcode, Hash, RefreshCw, Phone
+  X, Filter, Calendar, Barcode, Hash, RefreshCw, Phone, Printer
 } from 'lucide-vue-next'
 
 const supabase = useSupabaseClient()
@@ -346,6 +346,76 @@ const activeFiltersCount = computed(() => {
 const toggleExpand = (id: number) => {
   expandedMovimientos.value[id] = !expandedMovimientos.value[id]
 }
+
+// --- ORDENACIÓN ---
+const sortBy = ref('id')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+
+const setSort = (field: string) => {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = field
+    sortOrder.value = 'asc'
+  }
+}
+
+const sortedMovimientos = computed(() => {
+  const list = [...filteredMovimientos.value]
+  return list.sort((a, b) => {
+    if (sortBy.value === 'id') {
+      return sortOrder.value === 'asc' ? a.id - b.id : b.id - a.id
+    } else if (sortBy.value === 'fecha') {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return sortOrder.value === 'asc' ? dateA - dateB : dateB - dateA
+    } else if (sortBy.value === 'cliente') {
+      const nameA = a.clientes?.nombre || ''
+      const nameB = b.clientes?.nombre || ''
+      return sortOrder.value === 'asc' 
+        ? nameA.localeCompare(nameB) 
+        : nameB.localeCompare(nameA)
+    }
+    return 0
+  })
+})
+
+// --- IMPRESIÓN ---
+const formatDateStr = (dateStr?: string) => {
+  if (!dateStr) return 'N/A'
+  return new Date(dateStr).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
+const formatDateTime = (date: Date) => {
+  return date.toLocaleString('es-ES', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const activeFiltersSummary = computed(() => {
+  const parts = []
+  parts.push(`Periodo: ${formatDateStr(dateFrom.value)} al ${formatDateStr(dateTo.value)}`)
+  if (reportIdQuery.value.trim()) parts.push(`ID: "${reportIdQuery.value.trim()}"`)
+  if (selectedClient.value) parts.push(`Cliente: "${selectedClient.value.nombre}"`)
+  if (repuestoQuery.value.trim()) parts.push(`Repuesto: "${repuestoQuery.value.trim()}"`)
+  if (selectedBrand.value) parts.push(`Marca: "${selectedBrand.value.nombre}"`)
+  if (selectedModel.value) parts.push(`Modelo: "${selectedModel.value}"`)
+  if (selectedEquipment.value) parts.push(`Equipo: "${selectedEquipment.value.marcas?.nombre} ${selectedEquipment.value.modelo}"`)
+  if (serialQuery.value.trim()) parts.push(`Serial: "${serialQuery.value.trim()}"`)
+  return parts.join(' | ')
+})
+
+const imprimirReporte = () => {
+  window.print()
+}
 </script>
 
 <template>
@@ -362,14 +432,24 @@ const toggleExpand = (id: number) => {
         </div>
       </div>
       
-      <button 
-        @click="loadMovimientos"
-        class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl transition-colors shadow-sm flex items-center gap-2 text-sm font-semibold"
-        title="Refrescar datos"
-      >
-        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-        <span class="hidden sm:inline">Actualizar</span>
-      </button>
+      <div class="flex gap-2">
+        <button 
+          @click="imprimirReporte"
+          class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl transition-colors shadow-sm flex items-center gap-2 text-sm font-semibold"
+          title="Imprimir Reporte"
+        >
+          <Printer class="h-4 w-4" />
+          <span class="hidden sm:inline">Imprimir</span>
+        </button>
+        <button 
+          @click="loadMovimientos"
+          class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl transition-colors shadow-sm flex items-center gap-2 text-sm font-semibold"
+          title="Refrescar datos"
+        >
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+          <span class="hidden sm:inline">Actualizar</span>
+        </button>
+      </div>
     </div>
 
     <!-- Panel de Filtros -->
@@ -626,13 +706,37 @@ const toggleExpand = (id: number) => {
 
     <!-- Lista de Movimientos -->
     <div class="space-y-4">
-      <div class="flex items-center justify-between px-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-2">
         <h2 class="text-lg font-bold text-slate-800">
           Resultados 
           <span class="text-xs text-slate-400 font-normal ml-1">
-            (mostrando {{ filteredMovimientos.length }} de {{ movimientos.length }} en fecha)
+            (mostrando {{ sortedMovimientos.length }} de {{ movimientos.length }} en fecha)
           </span>
         </h2>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-slate-400 font-semibold">Ordenar por:</span>
+          <button 
+            @click="setSort('id')"
+            class="px-2.5 py-1.5 rounded-lg border font-semibold transition-colors"
+            :class="sortBy === 'id' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+          >
+            ID {{ sortBy === 'id' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}
+          </button>
+          <button 
+            @click="setSort('fecha')"
+            class="px-2.5 py-1.5 rounded-lg border font-semibold transition-colors"
+            :class="sortBy === 'fecha' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+          >
+            Fecha {{ sortBy === 'fecha' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}
+          </button>
+          <button 
+            @click="setSort('cliente')"
+            class="px-2.5 py-1.5 rounded-lg border font-semibold transition-colors"
+            :class="sortBy === 'cliente' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+          >
+            Cliente {{ sortBy === 'cliente' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}
+          </button>
+        </div>
       </div>
 
       <!-- Spinner de Carga -->
@@ -647,7 +751,7 @@ const toggleExpand = (id: number) => {
       </div>
 
       <!-- Sin Resultados -->
-      <div v-else-if="filteredMovimientos.length === 0" class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
+      <div v-else-if="sortedMovimientos.length === 0" class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
         <History class="h-10 w-10 text-slate-300 mx-auto mb-3" />
         <p class="text-slate-800 font-bold mb-1">Sin registros</p>
         <p class="text-xs text-slate-500 max-w-sm mx-auto">No se encontraron movimientos registrados para las fechas o filtros seleccionados.</p>
@@ -656,7 +760,7 @@ const toggleExpand = (id: number) => {
       <!-- Tarjetas de Movimientos (Optimizadas para Móvil) -->
       <div v-else class="space-y-4">
         <div 
-          v-for="mov in filteredMovimientos" 
+          v-for="mov in sortedMovimientos" 
           :key="mov.id" 
           class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-200 hover:border-slate-200"
         >
@@ -794,5 +898,95 @@ const toggleExpand = (id: number) => {
         </div>
       </div>
     </div>
+
+    <!-- Reporte Imprimible (Oculto en pantalla, se muestra en print) -->
+    <div class="print-report hidden print:block bg-white text-black p-4 md:p-8 font-sans w-full">
+      <!-- Header del reporte -->
+      <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
+        <div>
+          <h1 class="text-xl font-black uppercase tracking-tighter leading-none mb-2">Reporte Histórico de Movimientos</h1>
+          <div class="flex flex-wrap gap-4 text-[9px] font-bold text-slate-600">
+             <p>EMITIDO: {{ formatDateTime(new Date()) }}</p>
+             <p>FILTROS ACTIVOS: <span class="text-slate-955">{{ activeFiltersSummary }}</span></p>
+          </div>
+        </div>
+        <div class="text-right">
+           <p class="text-base font-black leading-none">electroluis</p>
+           <p class="text-[9px] uppercase font-bold text-slate-500">Histórico de Taller</p>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <table class="w-full border-collapse border border-slate-300">
+        <thead>
+          <tr class="bg-slate-100 border-b border-slate-300 text-[8px] font-black uppercase">
+            <th class="p-1.5 text-center w-12 border-r border-slate-300">ID</th>
+            <th class="p-1.5 text-left w-28 border-r border-slate-300">Fecha</th>
+            <th class="p-1.5 text-left w-36 border-r border-slate-300">Cliente</th>
+            <th class="p-1.5 text-left border-r border-slate-300">Equipos & Seriales</th>
+            <th class="p-1.5 text-left border-r border-slate-300">Repuestos Usados</th>
+            <th class="p-1.5 text-left">Trabajo Realizado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="mov in sortedMovimientos" :key="mov.id" class="border-b border-slate-200 page-break-inside-avoid">
+            <td class="p-1.5 text-center text-[10px] font-bold border-r border-slate-200">{{ mov.id }}</td>
+            <td class="p-1.5 text-[9px] font-mono border-r border-slate-200">
+              {{ new Date(mov.created_at).toLocaleString() }}
+            </td>
+            <td class="p-1.5 text-[9px] border-r border-slate-200">
+              <p class="font-bold text-slate-900">{{ mov.clientes?.nombre }}</p>
+              <p class="text-[8px] text-slate-500 font-mono" v-if="mov.clientes?.telefono">Tel: {{ mov.clientes.telefono }}</p>
+            </td>
+            <td class="p-1.5 text-[8px] border-r border-slate-200 space-y-1">
+              <div v-for="me in mov.movimientos_equipos" :key="me.id" class="leading-tight">
+                <span class="font-bold text-slate-800">{{ me.equipos?.marcas?.nombre }} {{ me.equipos?.modelo }}</span>
+                <span class="text-slate-500 block">S/N: <span class="font-mono">{{ me.nro_serie || '—' }}</span></span>
+              </div>
+            </td>
+            <td class="p-1.5 text-[8px] border-r border-slate-200 space-y-0.5">
+              <div v-for="mp in mov.movimientos_productos" :key="mp.id" class="leading-tight">
+                • {{ mp.repuestos?.nombre }} <span class="font-bold">(x{{ mp.cantidad }})</span>
+              </div>
+              <span v-if="!mov.movimientos_productos || mov.movimientos_productos.length === 0" class="text-slate-400 font-medium">—</span>
+            </td>
+            <td class="p-1.5 text-[9px] text-slate-700 leading-normal">{{ mov.descripcion || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pie de página -->
+      <div class="mt-8 pt-6 border-t border-slate-200 flex justify-between items-end text-[8px] font-bold text-slate-400">
+         <div>
+            <p>ESTE DOCUMENTO ES UN REGISTRO HISTÓRICO DE CONTROL INTERNO DE SERVICIOS - ELECTROLUIS.</p>
+         </div>
+         <div class="text-right">
+            Página ____ de ____
+         </div>
+       </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+@media print {
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  @page {
+    size: letter;
+    margin: 1cm;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+</style>

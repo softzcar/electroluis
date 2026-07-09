@@ -4,7 +4,7 @@ import { useSupabaseClient } from '#imports'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
 import { 
   Package, Tags, MapPin, Barcode, Search, ChevronDown, ChevronUp, 
-  X, Filter, RefreshCw, Eye, Calendar, Users, Cpu, Phone
+  X, Filter, RefreshCw, Eye, Calendar, Users, Cpu, Phone, Printer
 } from 'lucide-vue-next'
 
 const supabase = useSupabaseClient()
@@ -227,6 +227,70 @@ const openTraceabilityModal = async (repuesto: any) => {
 const toggleExpandTrace = (id: number) => {
   expandedMovementsInModal.value[id] = !expandedMovementsInModal.value[id]
 }
+
+// --- ORDENACIÓN ---
+const sortBy = ref('nombre')
+const sortOrder = ref<'asc' | 'desc'>('asc')
+
+const setSort = (field: string) => {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = field
+    sortOrder.value = 'asc'
+  }
+}
+
+const sortedRepuestos = computed(() => {
+  const list = [...filteredRepuestos.value]
+  return list.sort((a, b) => {
+    let valA = ''
+    let valB = ''
+
+    if (sortBy.value === 'nombre') {
+      valA = a.nombre || ''
+      valB = b.nombre || ''
+    } else if (sortBy.value === 'categoria') {
+      valA = a.categorias?.nombre || ''
+      valB = b.categorias?.nombre || ''
+    } else if (sortBy.value === 'ubicacion') {
+      valA = a.ubicacion || ''
+      valB = b.ubicacion || ''
+    } else if (sortBy.value === 'cantidad') {
+      const numA = a.cantidad ?? 0
+      const numB = b.cantidad ?? 0
+      return sortOrder.value === 'asc' ? numA - numB : numB - numA
+    }
+
+    return sortOrder.value === 'asc' 
+      ? valA.localeCompare(valB) 
+      : valB.localeCompare(valA)
+  })
+})
+
+// --- IMPRESIÓN ---
+const formatDateTime = (date: Date) => {
+  return date.toLocaleString('es-ES', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const activeFiltersSummary = computed(() => {
+  const parts = []
+  if (selectedRepuesto.value) parts.push(`Repuesto: "${selectedRepuesto.value.nombre}"`)
+  else if (repuestoSearchQuery.value.trim()) parts.push(`Búsqueda: "${repuestoSearchQuery.value.trim()}"`)
+  if (selectedCategory.value) parts.push(`Categoría: "${selectedCategory.value.nombre}"`)
+  if (selectedLocation.value) parts.push(`Ubicación: "${selectedLocation.value}"`)
+  return parts.length > 0 ? parts.join(' | ') : 'Todos los repuestos (Sin filtros)'
+})
+
+const imprimirReporte = () => {
+  window.print()
+}
 </script>
 
 <template>
@@ -243,13 +307,23 @@ const toggleExpandTrace = (id: number) => {
         </div>
       </div>
       
-      <button 
-        @click="loadData"
-        class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl transition-colors shadow-sm flex items-center gap-2 text-sm font-semibold"
-      >
-        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-        <span class="hidden sm:inline">Actualizar</span>
-      </button>
+      <div class="flex gap-2">
+        <button 
+          @click="imprimirReporte"
+          class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl transition-colors shadow-sm flex items-center gap-2 text-sm font-semibold"
+          title="Imprimir Reporte"
+        >
+          <Printer class="h-4 w-4" />
+          <span class="hidden sm:inline">Imprimir</span>
+        </button>
+        <button 
+          @click="loadData"
+          class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl transition-colors shadow-sm flex items-center gap-2 text-sm font-semibold"
+        >
+          <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+          <span class="hidden sm:inline">Actualizar</span>
+        </button>
+      </div>
     </div>
 
     <!-- Panel de Filtros -->
@@ -386,7 +460,7 @@ const toggleExpandTrace = (id: number) => {
         <h2 class="text-lg font-bold text-slate-800">
           Listado de Repuestos 
           <span class="text-xs text-slate-400 font-normal ml-1">
-            (mostrando {{ filteredRepuestos.length }} de {{ repuestos.length }})
+            (mostrando {{ sortedRepuestos.length }} de {{ repuestos.length }})
           </span>
         </h2>
       </div>
@@ -403,7 +477,7 @@ const toggleExpandTrace = (id: number) => {
       </div>
 
       <!-- Sin Resultados -->
-      <div v-else-if="filteredRepuestos.length === 0" class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
+      <div v-else-if="sortedRepuestos.length === 0" class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
         <Package class="h-10 w-10 text-slate-300 mx-auto mb-3" />
         <p class="text-slate-800 font-bold mb-1">Sin repuestos</p>
         <p class="text-xs text-slate-500 max-w-sm mx-auto">No se encontraron repuestos con los filtros seleccionados.</p>
@@ -413,18 +487,26 @@ const toggleExpandTrace = (id: number) => {
       <div v-else class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm text-left">
-            <thead class="bg-slate-50 text-slate-600 border-b border-slate-100 font-semibold">
+            <thead class="bg-slate-50 text-slate-600 border-b border-slate-100 font-semibold select-none">
               <tr>
-                <th class="px-6 py-4">Nombre (Insumo)</th>
-                <th class="px-6 py-4">Categoría</th>
-                <th class="px-6 py-4">Ubicación</th>
+                <th class="px-6 py-4 cursor-pointer hover:bg-slate-100/50 transition-colors" @click="setSort('nombre')">
+                  Nombre (Insumo) <span v-if="sortBy === 'nombre'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                </th>
+                <th class="px-6 py-4 cursor-pointer hover:bg-slate-100/50 transition-colors" @click="setSort('categoria')">
+                  Categoría <span v-if="sortBy === 'categoria'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                </th>
+                <th class="px-6 py-4 cursor-pointer hover:bg-slate-100/50 transition-colors" @click="setSort('ubicacion')">
+                  Ubicación <span v-if="sortBy === 'ubicacion'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                </th>
                 <th class="px-6 py-4">Código de Barras</th>
-                <th class="px-6 py-4 text-center">Existencias</th>
+                <th class="px-6 py-4 text-center cursor-pointer hover:bg-slate-100/50 transition-colors" @click="setSort('cantidad')">
+                  Existencias <span v-if="sortBy === 'cantidad'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr 
-                v-for="rep in filteredRepuestos" 
+                v-for="rep in sortedRepuestos" 
                 :key="rep.id" 
                 class="hover:bg-slate-50/50 transition-colors"
               >
@@ -628,4 +710,85 @@ const toggleExpandTrace = (id: number) => {
       </div>
     </div>
   </div>
+
+  <!-- Reporte Imprimible (Oculto en pantalla, se muestra en print) -->
+  <div class="print-report hidden print:block bg-white text-black p-4 md:p-8 font-sans w-full">
+    <!-- Header del reporte -->
+    <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
+      <div>
+        <h1 class="text-xl font-black uppercase tracking-tighter leading-none mb-2">Reporte de Existencias (Stock)</h1>
+        <div class="flex flex-wrap gap-4 text-[9px] font-bold text-slate-600">
+           <p>EMITIDO: {{ formatDateTime(new Date()) }}</p>
+           <p>FILTROS ACTIVOS: <span class="text-slate-955">{{ activeFiltersSummary }}</span></p>
+        </div>
+      </div>
+      <div class="text-right">
+         <p class="text-base font-black leading-none">electroluis</p>
+         <p class="text-[9px] uppercase font-bold text-slate-500">Control de Inventario</p>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <table class="w-full border-collapse border border-slate-300">
+      <thead>
+        <tr class="bg-slate-100 border-b border-slate-300 text-[8px] font-black uppercase">
+          <th class="p-1.5 text-left border-r border-slate-300">Nombre (Insumo)</th>
+          <th class="p-1.5 text-left w-36 border-r border-slate-300">Categoría</th>
+          <th class="p-1.5 text-left w-36 border-r border-slate-300">Ubicación</th>
+          <th class="p-1.5 text-left w-36 border-r border-slate-300">Código de Barras</th>
+          <th class="p-1.5 text-center w-24">Cantidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="rep in sortedRepuestos" :key="rep.id" class="border-b border-slate-200 page-break-inside-avoid">
+          <td class="p-1.5 text-[9px] font-bold text-slate-900 border-r border-slate-200">{{ rep.nombre }}</td>
+          <td class="p-1.5 text-[9px] text-slate-600 border-r border-slate-200 font-medium">
+            {{ rep.categorias?.nombre || 'Sin Categoría' }}
+          </td>
+          <td class="p-1.5 text-[9px] font-mono text-slate-700 border-r border-slate-200">
+            {{ rep.ubicacion || '—' }}
+          </td>
+          <td class="p-1.5 text-[9px] font-mono text-slate-400 border-r border-slate-200">
+            {{ rep.codigo_barras || '—' }}
+          </td>
+          <td class="p-1.5 text-center text-[10px] font-black" :class="rep.cantidad === 0 ? 'text-red-600 font-bold' : ''">
+            {{ rep.cantidad }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pie de página -->
+    <div class="mt-8 pt-6 border-t border-slate-200 flex justify-between items-end text-[8px] font-bold text-slate-400">
+       <div>
+          <p>ESTE DOCUMENTO ES UN REGISTRO DE STOCK Y EXISTENCIAS DE REPUESTOS - ELECTROLUIS.</p>
+       </div>
+       <div class="text-right">
+          Página ____ de ____
+       </div>
+     </div>
+  </div>
 </template>
+
+<style scoped>
+@media print {
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  @page {
+    size: letter;
+    margin: 1cm;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+</style>
