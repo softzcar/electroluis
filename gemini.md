@@ -20,7 +20,11 @@ Se identificó y solucionó el inconveniente por el cual los navegadores basados
 * **Archivo modificado/creado**: [app/middleware/auth.global.ts](file:///dev2/electroluis/app/middleware/auth.global.ts) y [nuxt.config.ts](file:///dev2/electroluis/nuxt.config.ts)
 * **Descripción**: Se desactivó la redirección automática del servidor de `@nuxtjs/supabase` (`redirect: false`) y se implementó un middleware global del lado del cliente. Esto evita que el servidor responda con un código de redirección `307` al acceder a la URL de inicio (`start_url: '/'`), permitiendo que el navegador reciba un `200 OK` y pueda validar/cachear el manifiesto e instalar la PWA correctamente.
 
+### 5. Ubicación del Directorio Public (Nuxt 4)
+* **Carpeta movida**: De `app/public/` a la raíz `public/`
+* **Descripción**: En Nuxt 4, la carpeta `public` debe ubicarse en la raíz del proyecto (junto a `app` y `nuxt.config.ts`), no dentro de `app/`. Al estar dentro de `app/`, el compilador ignoraba los iconos (`icon-192x192.png`, `icon-512x512.png`), de modo que no se incluían en el directorio de salida `.output/public` de Vercel. Esto causaba un error 404 al intentar cargar los iconos, impidiendo que Chromium habilitara la instalación de la aplicación.
+
 ## Despliegue en Vercel
 Para probar los cambios directamente en el entorno de Vercel, se realizaron los siguientes pasos en Git:
-1. Commit de los archivos modificados/creados: `app/app.vue`, `nuxt.config.ts`, `app/middleware/auth.global.ts` y este archivo `gemini.md`.
+1. Commit de los archivos modificados/creados/movidos: `app/app.vue`, `nuxt.config.ts`, `app/middleware/auth.global.ts`, la carpeta `public/` y este archivo `gemini.md`.
 2. Push a la rama principal (`main`) para disparar el despliegue automático en Vercel.
