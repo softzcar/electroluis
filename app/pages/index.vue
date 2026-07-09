@@ -11,7 +11,6 @@ const user = useSupabaseUser()
 const clientes = ref<any[]>([])
 const equipos = ref<any[]>([])
 const repuestos = ref<any[]>([])
-const movimientos = ref<any[]>([])
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -47,24 +46,20 @@ const loadData = async () => {
   const [
     { data: cl, error: clErr },
     { data: eq, error: eqErr },
-    { data: rep, error: repErr },
-    { data: mov, error: movErr }
+    { data: rep, error: repErr }
   ] = await Promise.all([
     supabase.from('clientes').select('*').order('nombre'),
     supabase.from('equipos').select('*, marcas(nombre)'),
-    supabase.from('repuestos').select('*').order('nombre'),
-    supabase.from('movimientos').select('*, clientes(nombre)').order('id', { ascending: false })
+    supabase.from('repuestos').select('*').order('nombre')
   ])
 
   if (clErr) errorMsg.value = clErr.message
   if (eqErr) errorMsg.value = eqErr.message
   if (repErr) errorMsg.value = repErr.message
-  if (movErr) errorMsg.value = movErr.message
 
   clientes.value = cl ?? []
   equipos.value = (eq ?? []).sort((a: any, b: any) => (a.marcas?.nombre || '').localeCompare(b.marcas?.nombre || ''))
   repuestos.value = rep ?? []
-  movimientos.value = mov ?? []
   loading.value = false
 }
 
@@ -680,36 +675,6 @@ const submitMovement = async () => {
       </div>
 
     </form>
-
-    <!-- Historial de Movimientos Recientes -->
-    <div class="space-y-4">
-      <h2 class="text-xl font-bold text-slate-800">Movimientos Recientes</h2>
-      
-      <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-x-auto">
-        <table class="w-full text-sm text-left">
-          <thead class="bg-slate-50 text-slate-600 border-b border-slate-100 font-semibold">
-            <tr>
-              <th class="px-6 py-4">Cliente</th>
-              <th class="px-6 py-4">Descripción del Servicio</th>
-              <th class="px-6 py-4">Fecha de Registro</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr v-if="loading">
-              <td class="px-6 py-4 text-slate-500" colspan="3">Cargando movimientos...</td>
-            </tr>
-            <tr v-else-if="movimientos.length === 0">
-              <td class="px-6 py-4 text-slate-500 text-center" colspan="3">No hay movimientos registrados.</td>
-            </tr>
-            <tr v-for="mov in movimientos" v-else :key="mov.id" class="hover:bg-slate-50 transition-colors">
-              <td class="px-6 py-4 font-bold text-slate-800">{{ mov.clientes?.nombre }}</td>
-              <td class="px-6 py-4 text-slate-600">{{ mov.descripcion || '—' }}</td>
-              <td class="px-6 py-4 text-slate-400 font-mono">{{ new Date(mov.created_at).toLocaleString() }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   </div>
 
   <!-- MODAL: Crear Cliente -->
