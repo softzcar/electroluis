@@ -122,6 +122,18 @@ const removeEquipment = (index: number) => {
 }
 
 const addRepuesto = (rep: any) => {
+  if (rep.cantidad <= 0) {
+    errorMsg.value = `No hay existencias disponibles para el repuesto: ${rep.nombre}.`
+    setTimeout(() => {
+      if (errorMsg.value.includes('No hay existencias')) {
+        errorMsg.value = ''
+      }
+    }, 4000)
+    repuestoQuery.value = ''
+    showRepuestoDropdown.value = false
+    return
+  }
+
   const existing = selectedRepuestos.value.find(item => item.id === rep.id)
   if (existing) {
     if (existing.cantidad < rep.cantidad) {
@@ -581,7 +593,8 @@ const submitMovement = async () => {
                   v-for="rep in filteredRepuestos" 
                   :key="rep.id"
                   @mousedown="addRepuesto(rep)"
-                  class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
+                  class="px-4 py-3 transition-colors flex justify-between items-center text-sm"
+                  :class="rep.cantidad > 0 ? 'hover:bg-slate-50 cursor-pointer' : 'opacity-60 cursor-not-allowed bg-slate-50/50'"
                 >
                   <div>
                     <p class="font-bold text-slate-800">{{ rep.nombre }}</p>
