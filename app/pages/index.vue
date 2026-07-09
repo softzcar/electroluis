@@ -229,12 +229,23 @@ const submitMovement = async () => {
   submitting.value = true
 
   try {
+    // Obtener el ID del usuario de forma segura (con fallback a la API de Supabase si es necesario)
+    let userId = user.value?.id
+    if (!userId) {
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      userId = currentUser?.id
+    }
+
+    if (!userId) {
+      throw new Error('No se pudo determinar el usuario autenticado. Por favor, inicia sesión de nuevo.')
+    }
+
     // 1. Insertar movimiento principal
     const { data: movData, error: movErr } = await supabase
       .from('movimientos')
       .insert({
         id_cliente: selectedClient.value.id,
-        id_user: user.value?.id,
+        id_user: userId,
         descripcion: form.descripcion || null
       })
       .select()

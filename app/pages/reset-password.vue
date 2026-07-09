@@ -1,53 +1,70 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useSupabaseClient } from '#imports'
-import { Mail, Lock, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { Lock, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-vue-next'
 
 definePageMeta({ layout: false })
 
 const supabase = useSupabaseClient()
 const router = useRouter()
 
-const email = ref('')
-const password = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
 const error = ref('')
 const success = ref('')
-const loading = ref(false)
-const isResetMode = ref(false)
+const loading = ref(true)
+const updating = ref(false)
+const hasSession = ref(false)
 
-const toggleResetMode = () => {
-  isResetMode.value = !isResetMode.value
-  error.value = ''
-  success.value = ''
-}
+onMounted(async () => {
+  try {
+    // Dar un momento al cliente Supabase para procesar el token de la URL (si viene de un redirect)
+    // y comprobar si se ha establecido una sesión
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (session) {
+      hasSession.value = true
+    } else {
+      error.value = 'El enlace de recuperación es inválido, ha expirado o ya fue utilizado.'
+    }
+  } catch (err: any) {
+    error.value = err.message || 'Error al validar la sesión de recuperación.'
+  } finally {
+    loading.value = false
+  }
+})
 
 const onSubmit = async () => {
   error.value = ''
   success.value = ''
-  loading.value = true
+  
+  if (newPassword.value !== confirmPassword.value) {
+    error.value = 'Las contraseñas no coinciden.'
+    return
+  }
 
+  if (newPassword.value.length < 6) {
+    error.value = 'La contraseña debe tener al menos 6 caracteres.'
+    return
+  }
+
+  updating.value = true
   try {
-    if (isResetMode.value) {
-      // Solicitar correo de recuperación de contraseña
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.value.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`
-      })
-      if (resetError) throw resetError
-      success.value = 'Enlace enviado. Revisa tu correo electrónico para restablecer tu contraseña.'
-      email.value = ''
-    } else {
-      // Iniciar sesión normal
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.value.trim(),
-        password: password.value
-      })
-      if (signInError) throw signInError
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword.value
+    })
+    
+    if (updateError) throw updateError
+    
+    success.value = 'Tu contraseña se ha restablecido con éxito. Entrando a la aplicación...'
+    
+    // Redirigir al inicio después de 2.5 segundos
+    setTimeout(() => {
       router.push('/')
-    }
+    }, 2500)
   } catch (err: any) {
-    error.value = err.message || 'Ocurrió un error inesperado. Inténtalo de nuevo.'
-  } finally {
-    loading.value = false
+    error.value = err.message || 'Ocurrió un error al actualizar la contraseña.'
+    updating.value = false
   }
 }
 </script>
@@ -64,55 +81,53 @@ const onSubmit = async () => {
           Medic Play
         </h1>
         <p class="text-sm text-slate-500 mt-2">
-          {{ isResetMode ? 'Restablece el acceso a tu cuenta' : 'Control de repuestos y servicio técnico' }}
+          Restablecer Contraseña
         </p>
       </div>
 
-      <form class="space-y-6" @submit.prevent="onSubmit">
-        <!-- Input de Correo -->
-        <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2" for="email">
-            Correo Electrónico
-          </label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-              <Mail :size="18" />
-            </span>
-            <input
-              id="email"
-              v-model="email"
-              type="email"
-              required
-              placeholder="ejemplo@correo.com"
-              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 placeholder-slate-400 text-sm"
-            >
-          </div>
-        </div>
+      <!-- Estado Cargando / Verificando enlace -->
+      <div v-if="loading" class="text-center py-8 space-y-4">
+        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="text-sm text-slate-600 font-medium">Verificando enlace de recuperación...</p>
+      </div>
 
-        <!-- Input de Contraseña (oculto en modo recuperación) -->
-        <div v-if="!isResetMode">
-          <div class="flex justify-between items-center mb-2">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500" for="password">
-              Contraseña
-            </label>
-            <button
-              type="button"
-              class="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-              @click="toggleResetMode"
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-          </div>
+      <!-- Formulario para Nueva Contraseña -->
+      <form v-else-if="hasSession" class="space-y-6" @submit.prevent="onSubmit">
+        <!-- Nueva Contraseña -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2" for="password">
+            Nueva Contraseña
+          </label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
               <Lock :size="18" />
             </span>
             <input
               id="password"
-              v-model="password"
+              v-model="newPassword"
               type="password"
               required
-              placeholder="••••••••"
+              placeholder="Mínimo 6 caracteres"
+              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 placeholder-slate-400 text-sm"
+            >
+          </div>
+        </div>
+
+        <!-- Confirmar Contraseña -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2" for="confirmPassword">
+            Confirmar Contraseña
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <Lock :size="18" />
+            </span>
+            <input
+              id="confirmPassword"
+              v-model="confirmPassword"
+              type="password"
+              required
+              placeholder="Repite la nueva contraseña"
               class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 placeholder-slate-400 text-sm"
             >
           </div>
@@ -134,27 +149,33 @@ const onSubmit = async () => {
           </div>
         </Transition>
 
-        <!-- Botón de Envío -->
+        <!-- Botón de Actualizar -->
         <button
           type="submit"
-          :disabled="loading"
+          :disabled="updating"
           class="w-full bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-slate-800 hover:to-indigo-900 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-indigo-950/20 active:scale-[0.98] transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
         >
-          <span>{{ loading ? 'Procesando...' : (isResetMode ? 'Enviar enlace de recuperación' : 'Iniciar Sesión') }}</span>
+          <span>{{ updating ? 'Actualizando contraseña...' : 'Guardar nueva contraseña' }}</span>
         </button>
+      </form>
 
-        <!-- Volver a Iniciar Sesión (solo modo recuperación) -->
-        <div v-if="isResetMode" class="text-center pt-2">
-          <button
-            type="button"
+      <!-- Estado: Enlace inválido / Sesión ausente -->
+      <div v-else class="space-y-6">
+        <div class="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          <AlertCircle :size="18" class="shrink-0 mt-0.5" />
+          <span>{{ error }}</span>
+        </div>
+
+        <div class="text-center pt-2">
+          <NuxtLink
+            to="/login"
             class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-            @click="toggleResetMode"
           >
             <ArrowLeft :size="16" />
-            <span>Volver a iniciar sesión</span>
-          </button>
+            <span>Volver al inicio de sesión</span>
+          </NuxtLink>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </template>
