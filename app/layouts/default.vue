@@ -10,10 +10,10 @@ const isMobileMenuOpen = ref(false)
 const links = [
   { to: '/', label: 'Movimientos', icon: ClipboardList },
   { to: '/historico', label: 'Histórico', icon: History },
-  { to: '/clientes', label: 'Clientes', icon: Users },
-  { to: '/equipos', label: 'Equipos', icon: Cpu },
   { to: '/repuestos', label: 'Repuestos', icon: Wrench },
   { to: '/existencias', label: 'Existencias', icon: Package },
+  { to: '/clientes', label: 'Clientes', icon: Users },
+  { to: '/equipos', label: 'Equipos', icon: Cpu },
   { to: '/categorias', label: 'Categorías', icon: Tags },
   { to: '/marcas', label: 'Marcas', icon: Bookmark }
 ]
