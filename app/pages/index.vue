@@ -36,6 +36,11 @@ const repuestoQuery = ref('')
 const showRepuestoDropdown = ref(false)
 const selectedRepuestos = ref<any[]>([]) // { id, nombre, codigo_barras, cantidad, stock }
 
+// Estados de los Modales
+const showClientModal = ref(false)
+const showEquipmentModal = ref(false)
+const showRepuestoModal = ref(false)
+
 // Cargar catálogos iniciales
 const loadData = async () => {
   loading.value = true
@@ -160,6 +165,25 @@ const decrementRepuesto = (index: number) => {
   }
 }
 
+// Handlers de creación en modales
+const onClientCreated = (newClient: any) => {
+  clientes.value.push(newClient)
+  selectedClient.value = newClient
+  showClientModal.value = false
+}
+
+const onEquipmentCreated = (newEquip: any) => {
+  equipos.value.push(newEquip)
+  addEquipment(newEquip)
+  showEquipmentModal.value = false
+}
+
+const onRepuestoCreated = (newRep: any) => {
+  repuestos.value.push(newRep)
+  addRepuesto(newRep)
+  showRepuestoModal.value = false
+}
+
 // Integración del lector de código de barras
 useBarcodeScanner((code) => {
   const found = repuestos.value.find(r => r.codigo_barras === code)
@@ -189,12 +213,20 @@ const submitMovement = async () => {
     return
   }
 
-  // Verificar números de serie de los equipos asociados
+  // Verificar números de serie vacíos
   for (const eq of selectedEquipos.value) {
     if (!eq.nro_serie.trim()) {
       errorMsg.value = `El equipo ${eq.marca} ${eq.modelo} requiere un número de serie.`
       return
     }
+  }
+
+  // VALIDACIÓN: Asegurarse de que el número de serie de los equipos no se repita en el mismo movimiento
+  const serials = selectedEquipos.value.map(eq => eq.nro_serie.trim().toLowerCase())
+  const hasDuplicates = serials.some((val, i) => serials.indexOf(val) !== i)
+  if (hasDuplicates) {
+    errorMsg.value = 'No se permiten números de serie duplicados en el mismo movimiento.'
+    return
   }
 
   errorMsg.value = ''
@@ -325,8 +357,8 @@ const submitMovement = async () => {
             1. Cliente del Servicio
           </h2>
 
-          <div v-if="!selectedClient" class="relative">
-            <div class="relative">
+          <div v-if="!selectedClient" class="flex gap-2">
+            <div class="relative flex-1">
               <Search class="absolute left-3 top-3 h-5 w-5 text-slate-400" />
               <input
                 v-model="clientQuery"
@@ -336,31 +368,40 @@ const submitMovement = async () => {
                 placeholder="Buscar cliente por nombre o teléfono..."
                 class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-950 focus:outline-none bg-slate-50 focus:bg-white transition-all text-sm"
               >
+              
+              <!-- Lista de sugerencias de Clientes -->
+              <div 
+                v-if="showClientDropdown && clientQuery" 
+                class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100"
+              >
+                <div 
+                  v-for="cli in filteredClientes" 
+                  :key="cli.id"
+                  @mousedown="selectClient(cli)"
+                  class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
+                >
+                  <div>
+                    <p class="font-semibold text-slate-800">{{ cli.nombre }}</p>
+                    <p class="text-xs text-slate-400">{{ cli.ubicacion_geografica || 'Sin ubicación' }}</p>
+                  </div>
+                  <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-mono">
+                    {{ cli.telefono || 'Sin teléfono' }}
+                  </span>
+                </div>
+                <div v-if="filteredClientes.length === 0" class="px-4 py-4 text-center text-sm text-slate-400">
+                  No se encontraron clientes con "{{ clientQuery }}"
+                </div>
+              </div>
             </div>
             
-            <!-- Lista de sugerencias de Clientes -->
-            <div 
-              v-if="showClientDropdown && clientQuery" 
-              class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100"
+            <button 
+              type="button"
+              @click="showClientModal = true"
+              class="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-2xl flex items-center justify-center transition-colors shrink-0"
+              title="Crear nuevo cliente"
             >
-              <div 
-                v-for="cli in filteredClientes" 
-                :key="cli.id"
-                @mousedown="selectClient(cli)"
-                class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
-              >
-                <div>
-                  <p class="font-semibold text-slate-800">{{ cli.nombre }}</p>
-                  <p class="text-xs text-slate-400">{{ cli.ubicacion_geografica || 'Sin ubicación' }}</p>
-                </div>
-                <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-mono">
-                  {{ cli.telefono || 'Sin teléfono' }}
-                </span>
-              </div>
-              <div v-if="filteredClientes.length === 0" class="px-4 py-4 text-center text-sm text-slate-400">
-                No se encontraron clientes con "{{ clientQuery }}"
-              </div>
-            </div>
+              <Plus class="h-5 w-5" />
+            </button>
           </div>
 
           <!-- Cliente Seleccionado -->
@@ -399,8 +440,8 @@ const submitMovement = async () => {
             </span>
           </div>
 
-          <div class="relative">
-            <div class="relative">
+          <div class="flex gap-2">
+            <div class="relative flex-1">
               <Search class="absolute left-3 top-3 h-5 w-5 text-slate-400" />
               <input
                 v-model="equipQuery"
@@ -410,31 +451,40 @@ const submitMovement = async () => {
                 placeholder="Buscar equipo en catálogo por marca o modelo..."
                 class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-950 focus:outline-none bg-slate-50 focus:bg-white transition-all text-sm"
               >
+              
+              <!-- Lista de sugerencias de Equipos -->
+              <div 
+                v-if="showEquipDropdown && equipQuery" 
+                class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100"
+              >
+                <div 
+                  v-for="eq in filteredEquipos" 
+                  :key="eq.id"
+                  @mousedown="addEquipment(eq)"
+                  class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
+                >
+                  <div>
+                    <p class="font-bold text-slate-800">{{ eq.marca }}</p>
+                    <p class="text-xs text-slate-500">Modelo: {{ eq.modelo }}</p>
+                  </div>
+                  <span class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">
+                    Agregar
+                  </span>
+                </div>
+                <div v-if="filteredEquipos.length === 0" class="px-4 py-4 text-center text-sm text-slate-400">
+                  No se encontraron equipos con "{{ equipQuery }}"
+                </div>
+              </div>
             </div>
             
-            <!-- Lista de sugerencias de Equipos -->
-            <div 
-              v-if="showEquipDropdown && equipQuery" 
-              class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100"
+            <button 
+              type="button"
+              @click="showEquipmentModal = true"
+              class="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-2xl flex items-center justify-center transition-colors shrink-0"
+              title="Crear nuevo equipo en catálogo"
             >
-              <div 
-                v-for="eq in filteredEquipos" 
-                :key="eq.id"
-                @mousedown="addEquipment(eq)"
-                class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
-              >
-                <div>
-                  <p class="font-bold text-slate-800">{{ eq.marca }}</p>
-                  <p class="text-xs text-slate-500">Modelo: {{ eq.modelo }}</p>
-                </div>
-                <span class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">
-                  Agregar
-                </span>
-              </div>
-              <div v-if="filteredEquipos.length === 0" class="px-4 py-4 text-center text-sm text-slate-400">
-                No se encontraron equipos con "{{ equipQuery }}"
-              </div>
-            </div>
+              <Plus class="h-5 w-5" />
+            </button>
           </div>
 
           <!-- Lista de Equipos Seleccionados con Serial -->
@@ -503,8 +553,8 @@ const submitMovement = async () => {
           </div>
 
           <!-- Typeahead de Repuestos -->
-          <div class="relative">
-            <div class="relative">
+          <div class="flex gap-2">
+            <div class="relative flex-1">
               <Search class="absolute left-3 top-3 h-5 w-5 text-slate-400" />
               <input
                 v-model="repuestoQuery"
@@ -514,36 +564,45 @@ const submitMovement = async () => {
                 placeholder="Buscar repuesto por nombre o código..."
                 class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-950 focus:outline-none bg-slate-50 focus:bg-white transition-all text-sm"
               >
+              
+              <!-- Lista de sugerencias de Repuestos -->
+              <div 
+                v-if="showRepuestoDropdown && repuestoQuery" 
+                class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100"
+              >
+                <div 
+                  v-for="rep in filteredRepuestos" 
+                  :key="rep.id"
+                  @mousedown="addRepuesto(rep)"
+                  class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
+                >
+                  <div>
+                    <p class="font-bold text-slate-800">{{ rep.nombre }}</p>
+                    <p class="text-xs text-slate-400">Código: {{ rep.codigo_barras || '—' }}</p>
+                  </div>
+                  <div class="text-right">
+                    <span 
+                      class="text-xs font-semibold px-2.5 py-1 rounded-full font-mono"
+                      :class="rep.cantidad > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'"
+                    >
+                      Cant: {{ rep.cantidad }}
+                    </span>
+                  </div>
+                </div>
+                <div v-if="filteredRepuestos.length === 0" class="px-4 py-4 text-center text-sm text-slate-400">
+                  No se encontraron repuestos con "{{ repuestoQuery }}"
+                </div>
+              </div>
             </div>
             
-            <!-- Lista de sugerencias de Repuestos -->
-            <div 
-              v-if="showRepuestoDropdown && repuestoQuery" 
-              class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100"
+            <button 
+              type="button"
+              @click="showRepuestoModal = true"
+              class="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-2xl flex items-center justify-center transition-colors shrink-0"
+              title="Crear nuevo repuesto"
             >
-              <div 
-                v-for="rep in filteredRepuestos" 
-                :key="rep.id"
-                @mousedown="addRepuesto(rep)"
-                class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
-              >
-                <div>
-                  <p class="font-bold text-slate-800">{{ rep.nombre }}</p>
-                  <p class="text-xs text-slate-400">Código: {{ rep.codigo_barras || '—' }}</p>
-                </div>
-                <div class="text-right">
-                  <span 
-                    class="text-xs font-semibold px-2.5 py-1 rounded-full font-mono"
-                    :class="rep.cantidad > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'"
-                  >
-                    Cant: {{ rep.cantidad }}
-                  </span>
-                </div>
-              </div>
-              <div v-if="filteredRepuestos.length === 0" class="px-4 py-4 text-center text-sm text-slate-400">
-                No se encontraron repuestos con "{{ repuestoQuery }}"
-              </div>
-            </div>
+              <Plus class="h-5 w-5" />
+            </button>
           </div>
 
           <!-- Lista de Repuestos Seleccionados -->
@@ -650,6 +709,39 @@ const submitMovement = async () => {
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Crear Cliente -->
+  <div v-if="showClientModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <Users class="h-5 w-5 text-slate-600" />
+        Crear Nuevo Cliente
+      </h3>
+      <ClientForm @success="onClientCreated" @cancel="showClientModal = false" />
+    </div>
+  </div>
+
+  <!-- MODAL: Crear Equipo en Catálogo -->
+  <div v-if="showEquipmentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <Cpu class="h-5 w-5 text-slate-600" />
+        Agregar Equipo al Catálogo
+      </h3>
+      <EquipmentForm @success="onEquipmentCreated" @cancel="showEquipmentModal = false" />
+    </div>
+  </div>
+
+  <!-- MODAL: Crear Repuesto -->
+  <div v-if="showRepuestoModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <Wrench class="h-5 w-5 text-slate-600" />
+        Crear Nuevo Repuesto
+      </h3>
+      <RepuestoForm @success="onRepuestoCreated" @cancel="showRepuestoModal = false" />
     </div>
   </div>
 </template>

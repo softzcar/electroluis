@@ -2,119 +2,27 @@
 const supabase = useSupabaseClient()
 
 const repuestos = ref<any[]>([])
-const categorias = ref<any[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
 
-const form = reactive({
-  nombre: '',
-  id_categoria: null as number | null,
-  cantidad: 0,
-  ubicacion: '',
-  codigo_barras: ''
-})
-
 const loadData = async () => {
   loading.value = true
-  const [{ data: r, error: rErr }, { data: c, error: cErr }] = await Promise.all([
-    supabase.from('repuestos').select('*, categorias(nombre)').order('id', { ascending: false }),
-    supabase.from('categorias').select('*').order('nombre')
-  ])
-  if (rErr) errorMsg.value = rErr.message
-  if (cErr) errorMsg.value = cErr.message
-  repuestos.value = r ?? []
-  categorias.value = c ?? []
+  const { data, error } = await supabase.from('repuestos').select('*, categorias(nombre)').order('id', { ascending: false })
+  if (error) errorMsg.value = error.message
+  repuestos.value = data ?? []
   loading.value = false
 }
 
 onMounted(loadData)
-
-// Cuando el lector de codigo de barras dispara una lectura, se completa el
-// campo del formulario automaticamente.
-useBarcodeScanner((code) => {
-  form.codigo_barras = code
-})
-
-const submit = async () => {
-  errorMsg.value = ''
-  const { error } = await supabase.from('repuestos').insert({
-    nombre: form.nombre,
-    id_categoria: form.id_categoria,
-    cantidad: form.cantidad,
-    ubicacion: form.ubicacion || null,
-    codigo_barras: form.codigo_barras || null
-  })
-  if (error) {
-    errorMsg.value = error.message
-    return
-  }
-  form.nombre = ''
-  form.id_categoria = null
-  form.cantidad = 0
-  form.ubicacion = ''
-  form.codigo_barras = ''
-  await loadData()
-}
 </script>
 
 <template>
   <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-slate-800 mb-6">Repuestos</h1>
 
-    <form class="bg-white p-5 rounded-lg shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4" @submit.prevent="submit">
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Nombre del Repuesto</label>
-        <input 
-          v-model="form.nombre" 
-          required 
-          placeholder="Ej. Condensador 10uF, Tarjeta lógica"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Categoría</label>
-        <select 
-          v-model="form.id_categoria" 
-          required 
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow bg-white"
-        >
-          <option :value="null" disabled>Selecciona una categoría</option>
-          <option v-for="cat in categorias" :key="cat.id" :value="cat.id">{{ cat.nombre }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Cantidad Inicial</label>
-        <input 
-          v-model.number="form.cantidad" 
-          type="number" 
-          min="0" 
-          placeholder="0"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Ubicación (Estante/Caja)</label>
-        <input 
-          v-model="form.ubicacion" 
-          placeholder="Ej. Pasillo A - Estante 2"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div class="sm:col-span-2">
-        <label class="block text-sm font-medium text-slate-600 mb-1">Código de barras</label>
-        <input
-          v-model="form.codigo_barras"
-          data-barcode-input="true"
-          placeholder="Escanea con el lector o escribe el código"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow font-mono"
-        >
-      </div>
-      <div class="sm:col-span-2 flex justify-end">
-        <button type="submit" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-md transition-colors shadow-sm">
-          Agregar repuesto
-        </button>
-      </div>
-    </form>
+    <div class="bg-white p-5 rounded-lg shadow-sm mb-6">
+      <RepuestoForm :show-cancel="false" @success="loadData" />
+    </div>
 
     <p v-if="errorMsg" class="text-sm text-red-600 mb-4">{{ errorMsg }}</p>
 
@@ -131,7 +39,7 @@ const submit = async () => {
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td class="px-5 py-4 text-slate-500" colspan="5">Cargando repuestos...</td>
+            <td class="px-5 py-4 text-slate-500" colspan="5 font-semibold">Cargando repuestos...</td>
           </tr>
           <tr v-else-if="repuestos.length === 0">
             <td class="px-5 py-4 text-slate-500 text-center" colspan="5">No hay repuestos registrados aún.</td>

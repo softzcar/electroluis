@@ -43,7 +43,15 @@ Se identificó y solucionó el inconveniente por el cual los navegadores basados
   * **Typeahead de Repuestos y Código de Barras**: Permite la carga dinámica de repuestos (añadiendo cantidades y stock disponible en tiempo real). Es compatible con escritura manual y con el lector de códigos de barras mediante el composable `useBarcodeScanner`.
   * **Eliminación interactiva**: Se añadieron botones de papelera de reciclaje (`Trash2` de Lucide) para quitar elementos de la lista fácilmente.
 
+### 4. Componentes Reutilizables y Modales de Creación Rápida
+* **Archivos modificados/creados**: [app/components/ClientForm.vue](file:///dev2/electroluis/app/components/ClientForm.vue), [app/components/EquipmentForm.vue](file:///dev2/electroluis/app/components/EquipmentForm.vue), [app/components/RepuestoForm.vue](file:///dev2/electroluis/app/components/RepuestoForm.vue), [app/pages/index.vue](file:///dev2/electroluis/app/pages/index.vue), y las páginas de catálogo [clientes/index.vue](file:///dev2/electroluis/app/pages/clientes/index.vue), [equipos/index.vue](file:///dev2/electroluis/app/pages/equipos/index.vue), [repuestos/index.vue](file:///dev2/electroluis/app/pages/repuestos/index.vue).
+* **Descripción**: 
+  * Se extrajeron los formularios de catálogo en tres componentes aislados y reutilizables, agregando un prop `showCancel` para ocultar el botón "Cancelar" cuando se renderizan de manera fija.
+  * Se refactorizaron las páginas de catálogo (`/clientes`, `/equipos`, `/repuestos`) para que utilicen estos nuevos componentes.
+  * Se integraron botones `+` junto a cada buscador predictivo en la página principal de Movimientos, abriendo modales interactivos con efecto de desenfoque (`backdrop-blur`). Al crear un elemento con éxito, se agrega de forma reactiva al catálogo local y **se auto-selecciona automáticamente** en el formulario de origen.
+  * **Validación de duplicados**: Se agregó una validación del lado del cliente en el proceso de registro del movimiento que impide ingresar un número de serie duplicado para múltiples equipos asignados en la misma orden de trabajo.
+
 ## Despliegue en Vercel
 Para probar los cambios directamente en el entorno de Vercel, se realizaron los siguientes pasos en Git:
-1. Commit de los archivos modificados/creados/movidos: `app/app.vue`, `nuxt.config.ts`, `app/middleware/auth.global.ts`, la carpeta `public/`, `app/layouts/default.vue`, `app/pages/index.vue`, `app/pages/movimientos/index.vue`, `app/pages/equipos/index.vue`, `supabase/migrations/update_equipos_serial.sql` y este archivo `gemini.md`.
+1. Commit de los archivos modificados/creados/movidos: `app/app.vue`, `nuxt.config.ts`, `app/middleware/auth.global.ts`, la carpeta `public/`, `app/layouts/default.vue`, `app/pages/index.vue`, `app/pages/movimientos/index.vue`, `app/pages/equipos/index.vue`, `supabase/migrations/update_equipos_serial.sql`, los componentes en `app/components/`, las páginas de catálogo en `app/pages/` y este archivo `gemini.md`.
 2. Push a la rama principal (`main`) para disparar el despliegue automático en Vercel.

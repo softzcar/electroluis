@@ -5,12 +5,6 @@ const clientes = ref<any[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
 
-const form = reactive({
-  nombre: '',
-  telefono: '',
-  ubicacion_geografica: ''
-})
-
 const loadData = async () => {
   loading.value = true
   const { data, error } = await supabase.from('clientes').select('*').order('id', { ascending: false })
@@ -20,61 +14,15 @@ const loadData = async () => {
 }
 
 onMounted(loadData)
-
-const submit = async () => {
-  errorMsg.value = ''
-  const { error } = await supabase.from('clientes').insert({
-    nombre: form.nombre,
-    telefono: form.telefono || null,
-    ubicacion_geografica: form.ubicacion_geografica || null
-  })
-  if (error) {
-    errorMsg.value = error.message
-    return
-  }
-  form.nombre = ''
-  form.telefono = ''
-  form.ubicacion_geografica = ''
-  await loadData()
-}
 </script>
 
 <template>
   <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-slate-800 mb-6">Clientes</h1>
 
-    <form class="bg-white p-5 rounded-lg shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4" @submit.prevent="submit">
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Nombre</label>
-        <input 
-          v-model="form.nombre" 
-          required 
-          placeholder="Ej. Juan Pérez"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Teléfono</label>
-        <input 
-          v-model="form.telefono" 
-          placeholder="Ej. +56912345678"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Ubicación</label>
-        <input 
-          v-model="form.ubicacion_geografica" 
-          placeholder="Ej. Av. Siempreviva 742"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div class="sm:col-span-3 flex justify-end">
-        <button type="submit" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-md transition-colors shadow-sm">
-          Agregar cliente
-        </button>
-      </div>
-    </form>
+    <div class="bg-white p-5 rounded-lg shadow-sm mb-6">
+      <ClientForm :show-cancel="false" @success="loadData" />
+    </div>
 
     <p v-if="errorMsg" class="text-sm text-red-600 mb-4">{{ errorMsg }}</p>
 

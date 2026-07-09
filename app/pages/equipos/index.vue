@@ -5,11 +5,6 @@ const equipos = ref<any[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
 
-const form = reactive({
-  marca: '',
-  modelo: ''
-})
-
 const loadData = async () => {
   loading.value = true
   const { data, error } = await supabase.from('equipos').select('*').order('id', { ascending: false })
@@ -19,52 +14,15 @@ const loadData = async () => {
 }
 
 onMounted(loadData)
-
-const submit = async () => {
-  errorMsg.value = ''
-  const { error } = await supabase.from('equipos').insert({
-    marca: form.marca,
-    modelo: form.modelo
-  })
-  if (error) {
-    errorMsg.value = error.message
-    return
-  }
-  form.marca = ''
-  form.modelo = ''
-  await loadData()
-}
 </script>
 
 <template>
   <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-slate-800 mb-6">Equipos</h1>
 
-    <form class="bg-white p-5 rounded-lg shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4" @submit.prevent="submit">
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Marca</label>
-        <input 
-          v-model="form.marca" 
-          required 
-          placeholder="Ej. Samsung, Whirlpool"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-600 mb-1">Modelo</label>
-        <input 
-          v-model="form.modelo" 
-          required 
-          placeholder="Ej. WF22B6300AW"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
-        >
-      </div>
-      <div class="sm:col-span-2 flex justify-end">
-        <button type="submit" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-md transition-colors shadow-sm">
-          Agregar equipo
-        </button>
-      </div>
-    </form>
+    <div class="bg-white p-5 rounded-lg shadow-sm mb-6">
+      <EquipmentForm :show-cancel="false" @success="loadData" />
+    </div>
 
     <p v-if="errorMsg" class="text-sm text-red-600 mb-4">{{ errorMsg }}</p>
 
