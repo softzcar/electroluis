@@ -40,7 +40,7 @@ watch(() => route.path, () => {
       >
         <component :is="isMobileMenuOpen ? XIcon : MenuIcon" :size="24" />
       </button>
-      <span class="text-lg font-semibold tracking-wide">electroluis</span>
+      <span class="text-lg font-semibold tracking-wide">Medic Play</span>
       <div class="w-10"></div> <!-- Espaciador para centrar el título -->
     </header>
 
@@ -57,7 +57,7 @@ watch(() => route.path, () => {
       :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
     >
       <div class="px-4 py-5 text-lg font-semibold border-b border-slate-800 flex justify-between items-center">
-        <span>electroluis</span>
+        <span>Medic Play</span>
         <!-- Botón para cerrar en móvil -->
         <button 
           class="md:hidden p-1.5 rounded-md hover:bg-slate-800 transition-colors focus:outline-none"

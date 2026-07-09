@@ -54,7 +54,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'electroluis',
+      title: 'Medic Play',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover' },
         { name: 'theme-color', content: '#0f172a' }
@@ -73,9 +73,9 @@ export default defineNuxtConfig({
     injectRegister: 'auto',
     manifest: {
       id: '/?standalone=true',
-      name: 'electroluis',
-      short_name: 'electroluis',
-      description: 'Control de repuestos y servicio tecnico electroluis',
+      name: 'Medic Play',
+      short_name: 'Medic Play',
+      description: 'Control de repuestos y servicio tecnico - Medic Play',
       theme_color: '#0f172a',
       background_color: '#0f172a',
       display: 'standalone',

@@ -911,7 +911,7 @@ const imprimirReporte = () => {
           </div>
         </div>
         <div class="text-right">
-           <p class="text-base font-black leading-none">electroluis</p>
+           <p class="text-base font-black leading-none">Medic Play</p>
            <p class="text-[9px] uppercase font-bold text-slate-500">Histórico de Taller</p>
         </div>
       </div>
@@ -958,7 +958,7 @@ const imprimirReporte = () => {
       <!-- Pie de página -->
       <div class="mt-8 pt-6 border-t border-slate-200 flex justify-between items-end text-[8px] font-bold text-slate-400">
          <div>
-            <p>ESTE DOCUMENTO ES UN REGISTRO HISTÓRICO DE CONTROL INTERNO DE SERVICIOS - ELECTROLUIS.</p>
+            <p>ESTE DOCUMENTO ES UN REGISTRO HISTÓRICO DE CONTROL INTERNO DE SERVICIOS - MEDIC PLAY.</p>
          </div>
          <div class="text-right">
             Página ____ de ____

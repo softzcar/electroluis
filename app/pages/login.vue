@@ -28,7 +28,7 @@ const onSubmit = async () => {
 <template>
   <div class="min-h-screen flex items-center justify-center bg-slate-100">
     <form class="w-full max-w-sm bg-white p-8 rounded-lg shadow" @submit.prevent="onSubmit">
-      <h1 class="text-xl font-semibold mb-6 text-slate-800">electroluis</h1>
+      <h1 class="text-xl font-semibold mb-6 text-slate-800">Medic Play</h1>
 
       <label class="block text-sm text-slate-600 mb-1" for="email">Correo</label>
       <input
