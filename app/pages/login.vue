@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { Mail, Lock, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-vue-next'
 
@@ -15,22 +15,44 @@ const success = ref('')
 const loading = ref(false)
 const isResetMode = ref(false)
 
+const errors = reactive({
+  email: '',
+  password: ''
+})
+
 const toggleResetMode = () => {
   isResetMode.value = !isResetMode.value
   error.value = ''
   success.value = ''
+  errors.email = ''
+  errors.password = ''
 }
 
 const onSubmit = async () => {
   error.value = ''
   success.value = ''
+  errors.email = ''
+  errors.password = ''
+
+  let hasError = false
+  if (!email.value.trim()) {
+    errors.email = 'El correo electrónico es obligatorio.'
+    hasError = true
+  }
+  if (!isResetMode.value && !password.value) {
+    errors.password = 'La contraseña es obligatoria.'
+    hasError = true
+  }
+  if (hasError) return
+
   loading.value = true
 
   try {
     if (isResetMode.value) {
       // Solicitar correo de recuperación de contraseña
+      const config = useRuntimeConfig()
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.value.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${config.public.siteUrl}/reset-password`
       })
       if (resetError) throw resetError
       success.value = 'Enlace enviado. Revisa tu correo electrónico para restablecer tu contraseña.'
@@ -68,7 +90,7 @@ const onSubmit = async () => {
         </p>
       </div>
 
-      <form class="space-y-6" @submit.prevent="onSubmit">
+      <form class="space-y-6" @submit.prevent="onSubmit" novalidate>
         <!-- Input de Correo -->
         <div>
           <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2" for="email">
@@ -82,11 +104,19 @@ const onSubmit = async () => {
               id="email"
               v-model="email"
               type="email"
-              required
               placeholder="ejemplo@correo.com"
-              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 placeholder-slate-400 text-sm"
+              :class="[
+                'w-full pl-10 pr-4 py-2.5 border rounded-xl focus:outline-none transition-all text-slate-800 placeholder-slate-400 text-sm',
+                errors.email ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-300 focus:ring-2 focus:ring-indigo-500'
+              ]"
+              @input="errors.email = ''"
             >
           </div>
+          <Transition name="fade">
+            <span v-if="errors.email" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+              <AlertCircle :size="14" class="shrink-0" /> {{ errors.email }}
+            </span>
+          </Transition>
         </div>
 
         <!-- Input de Contraseña (oculto en modo recuperación) -->
@@ -111,11 +141,19 @@ const onSubmit = async () => {
               id="password"
               v-model="password"
               type="password"
-              required
               placeholder="••••••••"
-              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 placeholder-slate-400 text-sm"
+              :class="[
+                'w-full pl-10 pr-4 py-2.5 border rounded-xl focus:outline-none transition-all text-slate-800 placeholder-slate-400 text-sm',
+                errors.password ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-300 focus:ring-2 focus:ring-indigo-500'
+              ]"
+              @input="errors.password = ''"
             >
           </div>
+          <Transition name="fade">
+            <span v-if="errors.password" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+              <AlertCircle :size="14" class="shrink-0" /> {{ errors.password }}
+            </span>
+          </Transition>
         </div>
 
         <!-- Mensaje de Error -->

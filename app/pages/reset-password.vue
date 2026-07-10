@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { Lock, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-vue-next'
 
@@ -15,6 +15,11 @@ const success = ref('')
 const loading = ref(true)
 const updating = ref(false)
 const hasSession = ref(false)
+
+const errors = reactive({
+  newPassword: '',
+  confirmPassword: ''
+})
 
 onMounted(async () => {
   try {
@@ -37,14 +42,27 @@ onMounted(async () => {
 const onSubmit = async () => {
   error.value = ''
   success.value = ''
-  
+  errors.newPassword = ''
+  errors.confirmPassword = ''
+
+  let hasError = false
+  if (!newPassword.value) {
+    errors.newPassword = 'La nueva contraseña es obligatoria.'
+    hasError = true
+  }
+  if (!confirmPassword.value) {
+    errors.confirmPassword = 'Debes confirmar la contraseña.'
+    hasError = true
+  }
+  if (hasError) return
+
   if (newPassword.value !== confirmPassword.value) {
-    error.value = 'Las contraseñas no coinciden.'
+    errors.confirmPassword = 'Las contraseñas no coinciden.'
     return
   }
 
   if (newPassword.value.length < 6) {
-    error.value = 'La contraseña debe tener al menos 6 caracteres.'
+    errors.newPassword = 'La contraseña debe tener al menos 6 caracteres.'
     return
   }
 
@@ -92,7 +110,7 @@ const onSubmit = async () => {
       </div>
 
       <!-- Formulario para Nueva Contraseña -->
-      <form v-else-if="hasSession" class="space-y-6" @submit.prevent="onSubmit">
+      <form v-else-if="hasSession" class="space-y-6" @submit.prevent="onSubmit" novalidate>
         <!-- Nueva Contraseña -->
         <div>
           <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2" for="password">
@@ -106,11 +124,19 @@ const onSubmit = async () => {
               id="password"
               v-model="newPassword"
               type="password"
-              required
               placeholder="Mínimo 6 caracteres"
-              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 placeholder-slate-400 text-sm"
+              :class="[
+                'w-full pl-10 pr-4 py-2.5 border rounded-xl focus:outline-none transition-all text-slate-800 placeholder-slate-400 text-sm',
+                errors.newPassword ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-300 focus:ring-2 focus:ring-indigo-500'
+              ]"
+              @input="errors.newPassword = ''"
             >
           </div>
+          <Transition name="fade">
+            <span v-if="errors.newPassword" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+              <AlertCircle :size="14" class="shrink-0" /> {{ errors.newPassword }}
+            </span>
+          </Transition>
         </div>
 
         <!-- Confirmar Contraseña -->
@@ -126,11 +152,19 @@ const onSubmit = async () => {
               id="confirmPassword"
               v-model="confirmPassword"
               type="password"
-              required
               placeholder="Repite la nueva contraseña"
-              class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 placeholder-slate-400 text-sm"
+              :class="[
+                'w-full pl-10 pr-4 py-2.5 border rounded-xl focus:outline-none transition-all text-slate-800 placeholder-slate-400 text-sm',
+                errors.confirmPassword ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-300 focus:ring-2 focus:ring-indigo-500'
+              ]"
+              @input="errors.confirmPassword = ''"
             >
           </div>
+          <Transition name="fade">
+            <span v-if="errors.confirmPassword" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+              <AlertCircle :size="14" class="shrink-0" /> {{ errors.confirmPassword }}
+            </span>
+          </Transition>
         </div>
 
         <!-- Mensaje de Error -->

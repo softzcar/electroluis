@@ -18,7 +18,14 @@ const links = [
   { to: '/marcas', label: 'Marcas', icon: Bookmark }
 ]
 
-const logout = async () => {
+const showLogoutConfirm = ref(false)
+
+const logout = () => {
+  showLogoutConfirm.value = true
+}
+
+const confirmLogout = async () => {
+  showLogoutConfirm.value = false
   await supabase.auth.signOut()
   router.push('/login')
 }
@@ -93,5 +100,40 @@ watch(() => route.path, () => {
     <main class="flex-1 p-4 sm:p-6 overflow-x-hidden w-full max-w-full">
       <slot />
     </main>
+
+    <!-- MODAL DE CONFIRMACIÓN DE LOGOUT -->
+    <div 
+      v-if="showLogoutConfirm" 
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+    >
+      <div 
+        class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200"
+        @click.stop
+      >
+        <h3 class="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
+          <LogOut class="h-5 w-5 text-red-500" />
+          ¿Cerrar sesión?
+        </h3>
+        <p class="text-sm text-slate-500 mb-6">
+          ¿Estás seguro de que deseas cerrar tu sesión en Medic Play? Deberás ingresar tus credenciales nuevamente para acceder.
+        </p>
+        <div class="flex justify-end gap-2.5">
+          <button 
+            type="button" 
+            @click="showLogoutConfirm = false"
+            class="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 text-slate-700 transition-all active:scale-[0.98]"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            @click="confirmLogout"
+            class="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-md hover:shadow-red-600/20"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

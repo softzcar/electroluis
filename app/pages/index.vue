@@ -363,7 +363,7 @@ const submitMovement = async () => {
     </div>
 
     <!-- Formulario Principal -->
-    <form @submit.prevent="submitMovement" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <form @submit.prevent="submitMovement" novalidate class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
       <!-- COLUMNA IZQUIERDA: Cliente, Equipos, Descripción (7 cols) -->
       <div class="lg:col-span-7 space-y-6">

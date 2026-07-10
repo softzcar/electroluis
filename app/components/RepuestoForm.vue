@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
-import { Barcode } from 'lucide-vue-next'
+import { Barcode, AlertCircle } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   (e: 'success', repuesto: any): void
@@ -32,6 +32,14 @@ const form = reactive({
   codigo_barras: ''
 })
 
+const errors = reactive({
+  nombre: '',
+  id_categoria: '',
+  cantidad: ''
+})
+
+const categoriaErrorMsg = ref('')
+
 const loadCategories = async () => {
   const { data, error } = await supabase.from('categorias').select('*').order('nombre')
   if (!error) categorias.value = data ?? []
@@ -40,7 +48,11 @@ const loadCategories = async () => {
 onMounted(loadCategories)
 
 const createCategoria = async () => {
-  if (!newCategoriaNombre.value.trim()) return
+  categoriaErrorMsg.value = ''
+  if (!newCategoriaNombre.value.trim()) {
+    categoriaErrorMsg.value = 'El nombre de la categoría es obligatorio.'
+    return
+  }
   creatingCategoria.value = true
   const { data, error } = await supabase
     .from('categorias')
@@ -49,7 +61,7 @@ const createCategoria = async () => {
     .single()
   creatingCategoria.value = false
   if (error) {
-    alert(error.message)
+    categoriaErrorMsg.value = error.message
     return
   }
   newCategoriaNombre.value = ''
@@ -66,6 +78,26 @@ useBarcodeScanner((code) => {
 })
 
 const submit = async () => {
+  errors.nombre = ''
+  errors.id_categoria = ''
+  errors.cantidad = ''
+  let hasError = false
+
+  if (!form.nombre.trim()) {
+    errors.nombre = 'El nombre del repuesto es obligatorio.'
+    hasError = true
+  }
+  if (!form.id_categoria) {
+    errors.id_categoria = 'Debes seleccionar una categoría.'
+    hasError = true
+  }
+  if (form.cantidad === null || form.cantidad === undefined || form.cantidad < 0) {
+    errors.cantidad = 'La cantidad inicial debe ser mayor o igual a 0.'
+    hasError = true
+  }
+
+  if (hasError) return
+
   errorMsg.value = ''
   loading.value = true
   
@@ -100,16 +132,24 @@ const submit = async () => {
 </script>
 
 <template>
-  <form @submit.prevent="submit" class="space-y-4">
+  <form @submit.prevent="submit" novalidate class="space-y-4">
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre del Repuesto</label>
         <input 
           v-model="form.nombre" 
-          required 
           placeholder="Ej. Condensador 10uF, Tarjeta lógica"
-          class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm"
+          :class="[
+            'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+            errors.nombre ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
+          ]"
+          @input="errors.nombre = ''"
         >
+        <Transition name="fade">
+          <span v-if="errors.nombre" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+            <AlertCircle :size="14" class="shrink-0" /> {{ errors.nombre }}
+          </span>
+        </Transition>
       </div>
       
       <div>
@@ -117,21 +157,29 @@ const submit = async () => {
         <div class="flex gap-2">
           <select 
             v-model="form.id_categoria" 
-            required 
-            class="flex-1 px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm bg-white"
+            :class="[
+              'flex-1 px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm bg-white',
+              errors.id_categoria ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-955'
+            ]"
+            @change="errors.id_categoria = ''"
           >
             <option :value="null" disabled>Selecciona una categoría</option>
             <option v-for="cat in categorias" :key="cat.id" :value="cat.id">{{ cat.nombre }}</option>
           </select>
           <button 
             type="button"
-            @click="showCategoriaModal = true"
+            @click="showCategoriaModal = true; categoriaErrorMsg = ''; newCategoriaNombre = ''"
             class="px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 font-bold transition-colors text-sm"
             title="Agregar nueva categoría"
           >
             +
           </button>
         </div>
+        <Transition name="fade">
+          <span v-if="errors.id_categoria" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+            <AlertCircle :size="14" class="shrink-0" /> {{ errors.id_categoria }}
+          </span>
+        </Transition>
       </div>
       
       <div>
@@ -140,10 +188,18 @@ const submit = async () => {
           v-model.number="form.cantidad" 
           type="number" 
           min="0"
-          required
           placeholder="0"
-          class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm"
+          :class="[
+            'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+            errors.cantidad ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
+          ]"
+          @input="errors.cantidad = ''"
         >
+        <Transition name="fade">
+          <span v-if="errors.cantidad" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+            <AlertCircle :size="14" class="shrink-0" /> {{ errors.cantidad }}
+          </span>
+        </Transition>
       </div>
       
       <div>
@@ -197,9 +253,19 @@ const submit = async () => {
       <input 
         v-model="newCategoriaNombre"
         placeholder="Nombre de la categoría (ej. Pantallas, Sensores)"
-        class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm mb-4"
+        :class="[
+          'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm mb-4',
+          categoriaErrorMsg ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
+        ]"
         @keyup.enter="createCategoria"
+        @input="categoriaErrorMsg = ''"
       >
+      <Transition name="fade">
+        <div v-if="categoriaErrorMsg" class="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-xl text-xs mb-4">
+          <AlertCircle :size="16" class="shrink-0 mt-0.5" />
+          <span>{{ categoriaErrorMsg }}</span>
+        </div>
+      </Transition>
       <div class="flex justify-end gap-2">
         <button 
           type="button" 
@@ -220,3 +286,15 @@ const submit = async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-2px);
+}
+</style>

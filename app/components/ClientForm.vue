@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useSupabaseClient } from '#imports'
+import { AlertCircle } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   (e: 'success', client: any): void
@@ -24,7 +25,18 @@ const form = reactive({
   ubicacion_geografica: ''
 })
 
+const errors = reactive({
+  nombre: ''
+})
+
 const submit = async () => {
+  errors.nombre = ''
+  
+  if (!form.nombre.trim()) {
+    errors.nombre = 'El nombre del cliente es obligatorio.'
+    return
+  }
+
   errorMsg.value = ''
   loading.value = true
   
@@ -55,15 +67,23 @@ const submit = async () => {
 </script>
 
 <template>
-  <form @submit.prevent="submit" class="space-y-4">
+  <form @submit.prevent="submit" novalidate class="space-y-4">
     <div>
       <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre</label>
       <input 
         v-model="form.nombre" 
-        required 
         placeholder="Ej. Juan Pérez"
-        class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm"
+        :class="[
+          'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+          errors.nombre ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
+        ]"
+        @input="errors.nombre = ''"
       >
+      <Transition name="fade">
+        <span v-if="errors.nombre" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+          <AlertCircle :size="14" class="shrink-0" /> {{ errors.nombre }}
+        </span>
+      </Transition>
     </div>
     
     <div>
@@ -105,3 +125,15 @@ const submit = async () => {
     </div>
   </form>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-2px);
+}
+</style>
