@@ -61,9 +61,6 @@ const reactivateClient = async () => {
   const { data, error } = await supabase
     .from('clientes')
     .update({
-      nombre: form.nombre.trim(),
-      telefono: form.telefono.trim() || null,
-      ubicacion_geografica: form.ubicacion_geografica || null,
       deleted_at: null
     })
     .eq('id', reactivateCandidate.value.id)
@@ -72,19 +69,17 @@ const reactivateClient = async () => {
     
   loading.value = false
   showReactivateConfirm.value = false
-  reactivateCandidate.value = null
   
   if (error) {
     errorMsg.value = error.message
+    reactivateCandidate.value = null
     return
   }
   
-  // Reset form
-  form.nombre = ''
-  form.telefono = ''
-  form.ubicacion_geografica = ''
+  const reactivatedItem = data
+  reactivateCandidate.value = null
 
-  emit('success', data)
+  emit('success', { reactivate: true, item: reactivatedItem })
 }
 
 const submit = async () => {

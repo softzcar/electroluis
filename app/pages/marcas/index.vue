@@ -57,21 +57,25 @@ const reactivateBrand = async () => {
   const { error } = await supabase
     .from('marcas')
     .update({
-      nombre: form.nombre.trim(),
       deleted_at: null
     })
     .eq('id', reactivateCandidate.value.id)
     
   loading.value = false
-  showReactivateConfirm.value = false
-  reactivateCandidate.value = null
   
   if (error) {
     errorMsg.value = error.message
+    showReactivateConfirm.value = false
+    reactivateCandidate.value = null
     return
   }
+
+  editingId.value = reactivateCandidate.value.id
+  form.nombre = reactivateCandidate.value.nombre
   
-  form.nombre = ''
+  showReactivateConfirm.value = false
+  reactivateCandidate.value = null
+  
   await loadData()
 }
 

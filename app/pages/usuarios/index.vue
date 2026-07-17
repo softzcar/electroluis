@@ -87,21 +87,21 @@ const reactivateUser = async () => {
   try {
     const { error } = await supabase.rpc('admin_reactivate_user', {
       user_id: reactivateCandidate.value.id,
-      new_password: form.password || null,
-      new_nombre: form.nombre.trim()
+      new_password: null,
+      new_nombre: null
     })
     
     if (error) throw error
     
-    successMsg.value = 'Usuario reactivado correctamente.'
+    form.id = reactivateCandidate.value.id
+    form.nombre = reactivateCandidate.value.nombre
+    form.email = reactivateCandidate.value.email
+    form.password = ''
+
     showReactivateConfirm.value = false
     reactivateCandidate.value = null
-    resetForm()
-    await loadUsers()
     
-    setTimeout(() => {
-      successMsg.value = ''
-    }, 4000)
+    await loadUsers()
   } catch (err: any) {
     errorMsg.value = err.message || 'Error al reactivar el usuario.'
   } finally {

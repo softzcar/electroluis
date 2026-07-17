@@ -107,18 +107,17 @@ const reactivateEquipment = async () => {
     
   loading.value = false
   showReactivateConfirm.value = false
-  reactivateCandidate.value = null
   
   if (error) {
     errorMsg.value = error.message
+    reactivateCandidate.value = null
     return
   }
   
-  // Reset form
-  form.id_marca = null
-  form.modelo = ''
+  const reactivatedItem = data
+  reactivateCandidate.value = null
 
-  emit('success', data)
+  emit('success', { reactivate: true, item: reactivatedItem })
 }
 
 const submit = async () => {
