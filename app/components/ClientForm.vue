@@ -162,12 +162,12 @@ const submit = async () => {
           reactivateCandidate.value = matched
           showReactivateConfirm.value = true
         } else {
-          errorMsg.value = `Este número telefónico ya pertenece a un cliente eliminado: "${matched.nombre}".`
+          errors.telefono = `Este número telefónico ya pertenece a un cliente eliminado: "${matched.nombre}".`
           loading.value = false
         }
         return
       } else {
-        errorMsg.value = `Este número telefónico ya está registrado para el cliente activo: "${matched.nombre}".`
+        errors.telefono = `Este número telefónico ya está registrado para el cliente activo: "${matched.nombre}".`
         loading.value = false
         return
       }
