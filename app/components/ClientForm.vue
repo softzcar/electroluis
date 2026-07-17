@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, watch, type PropType } from 'vue'
+import { ref, reactive, watch, computed, type PropType } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { AlertCircle } from 'lucide-vue-next'
 
@@ -30,11 +30,26 @@ const form = reactive({
 })
 
 const errors = reactive({
-  nombre: ''
+  nombre: '',
+  telefono: ''
 })
 
 const showReactivateConfirm = ref(false)
 const reactivateCandidate = ref<any>(null)
+
+const isFormDisabled = computed(() => !!errors.telefono || !!reactivateCandidate.value)
+
+const clearForm = () => {
+  form.nombre = ''
+  form.telefono = ''
+  form.ubicacion_geografica = ''
+  errors.nombre = ''
+  errors.telefono = ''
+  errorMsg.value = ''
+  showReactivateConfirm.value = false
+  reactivateCandidate.value = null
+  emit('cancel')
+}
 
 watch(() => props.client, (newVal) => {
   if (newVal) {
@@ -47,6 +62,7 @@ watch(() => props.client, (newVal) => {
     form.ubicacion_geografica = ''
   }
   errors.nombre = ''
+  errors.telefono = ''
   errorMsg.value = ''
   showReactivateConfirm.value = false
   reactivateCandidate.value = null
@@ -216,19 +232,28 @@ const submit = async () => {
       <input 
         v-model="form.telefono" 
         placeholder="Ej. +56912345678"
-        class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm"
+        :class="[
+          'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+          errors.telefono ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
+        ]"
         @blur="checkPhone"
         @change="checkPhone"
       >
+      <Transition name="fade">
+        <span v-if="errors.telefono" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+          <AlertCircle :size="14" class="shrink-0" /> {{ errors.telefono }}
+        </span>
+      </Transition>
     </div>
 
     <div>
       <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre</label>
       <input 
         v-model="form.nombre" 
+        :disabled="isFormDisabled"
         placeholder="Ej. Juan Pérez"
         :class="[
-          'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+          'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm disabled:opacity-50 disabled:bg-slate-50',
           errors.nombre ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
         ]"
         @input="errors.nombre = ''"
@@ -244,14 +269,22 @@ const submit = async () => {
       <label class="block text-sm font-semibold text-slate-700 mb-1">Ubicación</label>
       <input 
         v-model="form.ubicacion_geografica" 
+        :disabled="isFormDisabled"
         placeholder="Ej. Av. Siempreviva 742"
-        class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm"
+        class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-50"
       >
     </div>
 
     <p v-if="errorMsg" class="text-xs text-red-600">{{ errorMsg }}</p>
 
     <div class="flex justify-end gap-2 pt-2">
+      <button 
+        type="button" 
+        @click="clearForm"
+        class="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors text-slate-700"
+      >
+        Limpiar
+      </button>
       <button 
         v-if="showCancel"
         type="button" 
@@ -262,7 +295,7 @@ const submit = async () => {
       </button>
       <button 
         type="submit" 
-        :disabled="loading"
+        :disabled="loading || isFormDisabled"
         class="px-4 py-2 bg-slate-950 text-white rounded-xl text-sm font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50"
       >
         {{ loading ? 'Guardando...' : (props.client ? 'Guardar Cambios' : 'Guardar Cliente') }}

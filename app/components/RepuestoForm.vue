@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch, type PropType } from 'vue'
+import { ref, reactive, onMounted, watch, computed, type PropType } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
 import { Barcode, AlertCircle } from 'lucide-vue-next'
@@ -48,6 +48,24 @@ const categoriaErrorMsg = ref('')
 // Para reactivación de repuesto eliminado
 const showReactivateModal = ref(false)
 const deletedRepuestoFound = ref<any | null>(null)
+
+const isFormDisabled = computed(() => !!errors.codigo_barras || showReactivateModal.value)
+
+const clearForm = () => {
+  form.nombre = ''
+  form.id_categoria = null
+  form.cantidad = 0
+  form.ubicacion = ''
+  form.codigo_barras = ''
+  errors.nombre = ''
+  errors.id_categoria = ''
+  errors.cantidad = ''
+  errors.codigo_barras = ''
+  errorMsg.value = ''
+  showReactivateModal.value = false
+  deletedRepuestoFound.value = null
+  emit('cancel')
+}
 
 const loadCategories = async () => {
   const { data, error } = await supabase.from('categorias').select('*').is('deleted_at', null).order('nombre')
@@ -294,9 +312,10 @@ const submit = async () => {
           <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre del Repuesto</label>
           <input 
             v-model="form.nombre" 
+            :disabled="isFormDisabled"
             placeholder="Ej. Condensador 10uF, Tarjeta lógica"
             :class="[
-              'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+              'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm disabled:opacity-50 disabled:bg-slate-50',
               errors.nombre ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
             ]"
             @input="errors.nombre = ''"
@@ -314,8 +333,9 @@ const submit = async () => {
           <div class="flex gap-2">
             <select 
               v-model="form.id_categoria" 
+              :disabled="isFormDisabled"
               :class="[
-                'flex-1 px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm bg-white',
+                'flex-1 px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm bg-white disabled:opacity-50 disabled:bg-slate-50',
                 errors.id_categoria ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-955'
               ]"
               @change="errors.id_categoria = ''"
@@ -325,8 +345,9 @@ const submit = async () => {
             </select>
             <button 
               type="button"
+              :disabled="isFormDisabled"
               @click="showCategoriaModal = true; categoriaErrorMsg = ''; newCategoriaNombre = ''"
-              class="px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 font-bold transition-colors text-sm"
+              class="px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 font-bold transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               title="Agregar nueva categoría"
             >
               +
@@ -344,11 +365,12 @@ const submit = async () => {
           <label class="block text-sm font-semibold text-slate-700 mb-1">Stock</label>
           <input 
             v-model.number="form.cantidad" 
+            :disabled="isFormDisabled"
             type="number" 
             min="0"
             placeholder="0"
             :class="[
-              'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+              'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm disabled:opacity-50 disabled:bg-slate-50',
               errors.cantidad ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
             ]"
             @input="errors.cantidad = ''"
@@ -365,8 +387,9 @@ const submit = async () => {
           <label class="block text-sm font-semibold text-slate-700 mb-1">Ubicación (Estante/Caja)</label>
           <input 
             v-model="form.ubicacion" 
+            :disabled="isFormDisabled"
             placeholder="Ej. Pasillo A - Estante 2"
-            class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm"
+            class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-50"
           >
         </div>
       </div>
@@ -374,6 +397,13 @@ const submit = async () => {
       <p v-if="errorMsg" class="text-xs text-red-600">{{ errorMsg }}</p>
 
       <div class="flex justify-end gap-2 pt-2">
+        <button 
+          type="button" 
+          @click="clearForm"
+          class="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors text-slate-700"
+        >
+          Limpiar
+        </button>
         <button 
           v-if="showCancel"
           type="button" 
@@ -384,7 +414,7 @@ const submit = async () => {
         </button>
         <button 
           type="submit" 
-          :disabled="loading"
+          :disabled="loading || isFormDisabled"
           class="px-4 py-2 bg-slate-950 text-white rounded-xl text-sm font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50"
         >
           {{ loading ? 'Guardando...' : (props.repuesto ? 'Guardar Cambios' : 'Guardar Repuesto') }}

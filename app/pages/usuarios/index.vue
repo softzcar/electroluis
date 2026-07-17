@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useSupabaseClient, useSupabaseUser } from '#imports'
 import { UserCog, Trash2, Edit2, AlertCircle, CheckCircle, Mail, User, Lock, ShieldAlert, UserPlus, Info } from 'lucide-vue-next'
 
@@ -27,6 +27,8 @@ const errors = reactive({
   email: '',
   password: ''
 })
+
+const isFormDisabled = computed(() => !!errors.email || showReactivateConfirm.value)
 
 const loadUsers = async () => {
   loading.value = true
@@ -378,9 +380,10 @@ $$ language plpgsql security definer;
               <div class="relative">
                 <input 
                   v-model="form.nombre" 
+                  :disabled="isFormDisabled"
                   placeholder="Ej. Carlos Mendoza"
                   :class="[
-                    'w-full pl-3.5 pr-4 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+                    'w-full pl-3.5 pr-4 py-2 border rounded-xl focus:outline-none transition-all text-sm disabled:opacity-50 disabled:bg-slate-50',
                     errors.nombre ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
                   ]"
                   @input="errors.nombre = ''"
@@ -426,10 +429,11 @@ $$ language plpgsql security definer;
               <div class="relative">
                 <input 
                   v-model="form.password" 
+                  :disabled="isFormDisabled"
                   type="password"
                   placeholder="Mínimo 6 caracteres"
                   :class="[
-                    'w-full pl-3.5 pr-4 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+                    'w-full pl-3.5 pr-4 py-2 border rounded-xl focus:outline-none transition-all text-sm disabled:opacity-50 disabled:bg-slate-50',
                     errors.password ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
                   ]"
                   @input="errors.password = ''"
@@ -451,16 +455,15 @@ $$ language plpgsql security definer;
             <!-- Botones de Acción -->
             <div class="flex gap-2 pt-2">
               <button 
-                v-if="form.id"
                 type="button"
                 @click="resetForm"
                 class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 text-slate-700 transition-colors"
               >
-                Cancelar Edición
+                {{ form.id ? 'Cancelar Edición' : 'Limpiar' }}
               </button>
               <button 
                 type="submit" 
-                :disabled="submitting"
+                :disabled="submitting || isFormDisabled"
                 class="flex-1 bg-slate-950 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 text-sm"
               >
                 {{ submitting ? 'Guardando...' : (form.id ? 'Actualizar Usuario' : 'Crear Usuario') }}
