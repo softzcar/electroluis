@@ -88,24 +88,19 @@ const checkPhone = async () => {
 
   errorMsg.value = ''
   
-  let query = supabase
-    .from('clientes')
-    .select('*')
-    .eq('telefono', phone)
-
-  if (props.client?.id) {
-    query = query.neq('id', props.client.id)
-  }
-  
-  const { data: existing, error: checkError } = await query.limit(1)
+  const { data: existing, error: checkError } = await supabase
+    .rpc('get_client_by_phone_last_10', { phone_to_check: phone })
 
   if (checkError) {
     errorMsg.value = checkError.message
     return
   }
 
-  if (existing && existing.length > 0) {
-    const matched = existing[0]
+  // Filtrar el cliente actual si estamos editando
+  const filtered = (existing ?? []).filter((c: any) => !props.client?.id || c.id !== props.client.id)
+
+  if (filtered && filtered.length > 0) {
+    const matched = filtered[0]
     if (matched.deleted_at) {
       if (!props.client?.id) {
         reactivateCandidate.value = matched
@@ -132,16 +127,8 @@ const submit = async () => {
 
   // Validar teléfono duplicado
   if (form.telefono.trim()) {
-    let query = supabase
-      .from('clientes')
-      .select('*')
-      .eq('telefono', form.telefono.trim())
-
-    if (props.client?.id) {
-      query = query.neq('id', props.client.id)
-    }
-
-    const { data: existing, error: checkError } = await query.limit(1)
+    const { data: existing, error: checkError } = await supabase
+      .rpc('get_client_by_phone_last_10', { phone_to_check: form.telefono.trim() })
 
     if (checkError) {
       errorMsg.value = checkError.message
@@ -149,8 +136,10 @@ const submit = async () => {
       return
     }
 
-    if (existing && existing.length > 0) {
-      const matched = existing[0]
+    const filtered = (existing ?? []).filter((c: any) => !props.client?.id || c.id !== props.client.id)
+
+    if (filtered && filtered.length > 0) {
+      const matched = filtered[0]
       if (matched.deleted_at) {
         if (!props.client?.id) {
           loading.value = false
