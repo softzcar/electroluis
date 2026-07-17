@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { Edit2, Trash2, AlertCircle } from 'lucide-vue-next'
 
 const supabase = useSupabaseClient()
@@ -9,6 +9,10 @@ const loading = ref(false)
 const errorMsg = ref('')
 
 const form = reactive({
+  nombre: ''
+})
+
+const errors = reactive({
   nombre: ''
 })
 
@@ -32,10 +36,55 @@ onMounted(loadData)
 const showReactivateConfirm = ref(false)
 const reactivateCandidate = ref<any>(null)
 
+const isFormDisabled = computed(() => !!errors.nombre || showReactivateConfirm.value)
+
+const checkNombre = async () => {
+  const nombre = form.nombre.trim()
+  if (!nombre) {
+    errors.nombre = ''
+    return
+  }
+
+  errors.nombre = ''
+  errorMsg.value = ''
+  
+  let query = supabase
+    .from('categorias')
+    .select('*')
+    .ilike('nombre', nombre)
+    
+  if (editingId.value) {
+    query = query.neq('id', editingId.value)
+  }
+  
+  const { data, error } = await query.limit(1)
+  
+  if (error) {
+    errorMsg.value = error.message
+    return
+  }
+  
+  if (data && data.length > 0) {
+    const matched = data[0]
+    if (matched.deleted_at) {
+      if (!editingId.value) {
+        reactivateCandidate.value = matched
+        showReactivateConfirm.value = true
+        errors.nombre = `Esta categoría ya existe pero fue eliminada: "${matched.nombre}".`
+      } else {
+        errors.nombre = `Esta categoría ya existe como eliminada.`
+      }
+    } else {
+      errors.nombre = `Esta categoría ya existe y está activa.`
+    }
+  }
+}
+
 const startEdit = (cat: any) => {
   editingId.value = cat.id
   form.nombre = cat.nombre
   errorMsg.value = ''
+  errors.nombre = ''
   showReactivateConfirm.value = false
   reactivateCandidate.value = null
 }
@@ -44,6 +93,7 @@ const cancelEdit = () => {
   editingId.value = null
   form.nombre = ''
   errorMsg.value = ''
+  errors.nombre = ''
   showReactivateConfirm.value = false
   reactivateCandidate.value = null
 }
@@ -80,8 +130,14 @@ const reactivateCategory = async () => {
 }
 
 const submit = async () => {
+  errors.nombre = ''
   errorMsg.value = ''
   if (!form.nombre.trim()) return
+
+  await checkNombre()
+  if (isFormDisabled.value) {
+    return
+  }
 
   if (editingId.value) {
     const { error } = await supabase
@@ -94,25 +150,6 @@ const submit = async () => {
     }
     cancelEdit()
   } else {
-    // Validar nombre duplicado en eliminados (solo en creación)
-    const { data: existingDeleted, error: checkError } = await supabase
-      .from('categorias')
-      .select('*')
-      .ilike('nombre', form.nombre.trim())
-      .not('deleted_at', 'is', null)
-      .limit(1)
-
-    if (checkError) {
-      errorMsg.value = checkError.message
-      return
-    }
-
-    if (existingDeleted && existingDeleted.length > 0) {
-      reactivateCandidate.value = existingDeleted[0]
-      showReactivateConfirm.value = true
-      return
-    }
-
     const { error } = await supabase
       .from('categorias')
       .insert({ nombre: form.nombre.trim() })
@@ -153,15 +190,34 @@ const deleteRecord = async (id: number) => {
           v-model="form.nombre" 
           required 
           placeholder="Ej. Lavadoras, Refrigeración"
-          class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow"
+          :class="[
+            'w-full px-3 py-2 border rounded-md focus:ring-2 focus:outline-none transition-all text-sm',
+            errors.nombre ? 'border-red-500 focus:ring-red-100 bg-red-50/20' : 'border-slate-300 focus:ring-slate-900'
+          ]"
+          @blur="checkNombre"
+          @change="checkNombre"
+          @input="errors.nombre = ''"
         >
+        <Transition name="fade">
+          <span v-if="errors.nombre" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
+            <AlertCircle :size="14" class="shrink-0" /> {{ errors.nombre }}
+          </span>
+        </Transition>
       </div>
       <div class="flex gap-2">
-        <button type="submit" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-md transition-colors shadow-sm shrink-0">
-          {{ editingId ? 'Guardar' : 'Agregar categoría' }}
+        <button 
+          type="button" 
+          @click="cancelEdit" 
+          class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-md transition-colors border border-slate-200 shrink-0 text-sm"
+        >
+          {{ editingId ? 'Cancelar' : 'Limpiar' }}
         </button>
-        <button v-if="editingId" type="button" @click="cancelEdit" class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-md transition-colors border border-slate-200 shrink-0">
-          Cancelar
+        <button 
+          type="submit" 
+          :disabled="isFormDisabled"
+          class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-md transition-colors shadow-sm shrink-0 disabled:opacity-50 text-sm"
+        >
+          {{ editingId ? 'Guardar' : 'Agregar categoría' }}
         </button>
       </div>
     </form>

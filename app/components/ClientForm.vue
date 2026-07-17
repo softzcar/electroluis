@@ -238,6 +238,7 @@ const submit = async () => {
         ]"
         @blur="checkPhone"
         @change="checkPhone"
+        @input="errors.telefono = ''"
       >
       <Transition name="fade">
         <span v-if="errors.telefono" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">

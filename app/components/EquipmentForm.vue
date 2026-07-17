@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch, type PropType } from 'vue'
+import { ref, reactive, onMounted, watch, computed, type PropType } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { AlertCircle } from 'lucide-vue-next'
 
@@ -49,6 +49,61 @@ onMounted(loadMarcas)
 
 const showReactivateConfirm = ref(false)
 const reactivateCandidate = ref<any>(null)
+
+const isFormDisabled = computed(() => !!errors.modelo || showReactivateConfirm.value)
+
+const clearForm = () => {
+  form.id_marca = null
+  form.modelo = ''
+  errors.id_marca = ''
+  errors.modelo = ''
+  errorMsg.value = ''
+  showReactivateConfirm.value = false
+  reactivateCandidate.value = null
+  emit('cancel')
+}
+
+const checkDuplicate = async () => {
+  if (!form.id_marca || !form.modelo.trim()) {
+    errors.modelo = ''
+    return
+  }
+
+  errors.modelo = ''
+  errorMsg.value = ''
+
+  let query = supabase
+    .from('equipos')
+    .select('*, marcas(nombre)')
+    .eq('id_marca', form.id_marca)
+    .eq('modelo', form.modelo.trim())
+
+  if (props.equipment?.id) {
+    query = query.neq('id', props.equipment.id)
+  }
+
+  const { data: existing, error: checkError } = await query.limit(1)
+
+  if (checkError) {
+    errorMsg.value = checkError.message
+    return
+  }
+
+  if (existing && existing.length > 0) {
+    const matched = existing[0]
+    if (matched.deleted_at) {
+      if (!props.equipment?.id) {
+        reactivateCandidate.value = matched
+        showReactivateConfirm.value = true
+        errors.modelo = `Este equipo ya existe como eliminado.`
+      } else {
+        errors.modelo = `Este equipo ya existe como eliminado.`
+      }
+    } else {
+      errors.modelo = `Este equipo (marca y modelo) ya se encuentra registrado y activo.`
+    }
+  }
+}
 
 watch(() => props.equipment, (newVal) => {
   if (newVal) {
@@ -136,32 +191,14 @@ const submit = async () => {
 
   if (hasError) return
 
+  await checkDuplicate()
+
+  if (isFormDisabled.value) {
+    return
+  }
+
   errorMsg.value = ''
   loading.value = true
-
-  // Validar marca y modelo duplicado en eliminados (solo en creación)
-  if (!props.equipment?.id && form.id_marca && form.modelo.trim()) {
-    const { data: existingDeleted, error: checkError } = await supabase
-      .from('equipos')
-      .select('*, marcas(nombre)')
-      .eq('id_marca', form.id_marca)
-      .eq('modelo', form.modelo.trim())
-      .not('deleted_at', 'is', null)
-      .limit(1)
-
-    if (checkError) {
-      errorMsg.value = checkError.message
-      loading.value = false
-      return
-    }
-
-    if (existingDeleted && existingDeleted.length > 0) {
-      loading.value = false
-      reactivateCandidate.value = existingDeleted[0]
-      showReactivateConfirm.value = true
-      return
-    }
-  }
   
   let data, error;
   
@@ -220,17 +257,19 @@ const submit = async () => {
           v-model="form.id_marca" 
           :class="[
             'flex-1 px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm bg-white',
-            errors.id_marca ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
+            errors.id_marca ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-955'
           ]"
-          @change="errors.id_marca = ''"
+          @change="errors.id_marca = ''; checkDuplicate()"
+          @blur="checkDuplicate"
         >
           <option :value="null" disabled>Selecciona una marca</option>
           <option v-for="m in marcas" :key="m.id" :value="m.id">{{ m.nombre }}</option>
         </select>
         <button 
           type="button"
+          :disabled="isFormDisabled"
           @click="showMarcaModal = true; brandErrorMsg = ''; newMarcaNombre = ''"
-          class="px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 font-bold transition-colors text-sm"
+          class="px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 font-bold transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           title="Agregar nueva marca"
         >
           +
@@ -247,12 +286,15 @@ const submit = async () => {
       <label class="block text-sm font-semibold text-slate-700 mb-1">Modelo</label>
       <input 
         v-model="form.modelo" 
+        :disabled="isFormDisabled"
         placeholder="Ej. WF22B6300AW"
         :class="[
-          'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm',
+          'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm disabled:opacity-50 disabled:bg-slate-50',
           errors.modelo ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
         ]"
         @input="errors.modelo = ''"
+        @change="checkDuplicate"
+        @blur="checkDuplicate"
       >
       <Transition name="fade">
         <span v-if="errors.modelo" class="text-xs text-red-600 mt-1.5 font-medium flex items-center gap-1">
@@ -265,6 +307,13 @@ const submit = async () => {
 
     <div class="flex justify-end gap-2 pt-2">
       <button 
+        type="button" 
+        @click="clearForm"
+        class="px-4 py-2 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors text-slate-700"
+      >
+        Limpiar
+      </button>
+      <button 
         v-if="showCancel"
         type="button" 
         @click="emit('cancel')"
@@ -274,7 +323,7 @@ const submit = async () => {
       </button>
       <button 
         type="submit" 
-        :disabled="loading"
+        :disabled="loading || isFormDisabled"
         class="px-4 py-2 bg-slate-950 text-white rounded-xl text-sm font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50"
       >
         {{ loading ? 'Guardando...' : (props.equipment ? 'Guardar Cambios' : 'Guardar Equipo') }}
