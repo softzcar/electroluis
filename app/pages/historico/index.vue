@@ -65,9 +65,9 @@ const loadCatalogs = async () => {
     { data: br },
     { data: eq }
   ] = await Promise.all([
-    supabase.from('clientes').select('*').order('nombre'),
-    supabase.from('marcas').select('*').order('nombre'),
-    supabase.from('equipos').select('*, marcas(nombre)').order('modelo')
+    supabase.from('clientes').select('*').is('deleted_at', null).order('nombre'),
+    supabase.from('marcas').select('*').is('deleted_at', null).order('nombre'),
+    supabase.from('equipos').select('*, marcas(nombre)').is('deleted_at', null).order('modelo')
   ])
   clientes.value = cl ?? []
   marcas.value = br ?? []

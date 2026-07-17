@@ -46,8 +46,8 @@ const loadData = async () => {
       { data: repData, error: repErr },
       { data: catData, error: catErr }
     ] = await Promise.all([
-      supabase.from('repuestos').select('*, categorias(nombre)').order('nombre'),
-      supabase.from('categorias').select('*').order('nombre')
+      supabase.from('repuestos').select('*, categorias(nombre)').is('deleted_at', null).order('nombre'),
+      supabase.from('categorias').select('*').is('deleted_at', null).order('nombre')
     ])
 
     if (repErr) throw repErr

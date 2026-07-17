@@ -14,7 +14,7 @@ const links = [
   { to: '/existencias', label: 'Existencias', icon: Package },
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/equipos', label: 'Equipos', icon: Cpu },
-  { to: '/categorias', label: 'Categorías', icon: Tags },
+  { to: '/categorias', label: 'Categorías de repuestos', icon: Tags },
   { to: '/marcas', label: 'Marcas', icon: Bookmark },
   { to: '/usuarios', label: 'Usuarios', icon: UserCog }
 ]

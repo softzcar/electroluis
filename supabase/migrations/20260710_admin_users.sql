@@ -14,7 +14,7 @@ begin
   select 
     p.id,
     p.nombre,
-    u.email,
+    u.email::text,
     p.created_at
   from public.profiles p
   join auth.users u on p.id = u.id

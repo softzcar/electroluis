@@ -50,9 +50,8 @@ const onSubmit = async () => {
   try {
     if (isResetMode.value) {
       // Solicitar correo de recuperación de contraseña
-      const config = useRuntimeConfig()
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.value.trim(), {
-        redirectTo: `${config.public.siteUrl}/reset-password`
+        redirectTo: 'https://medicplay.vercel.app/reset-password'
       })
       if (resetError) throw resetError
       success.value = 'Enlace enviado. Revisa tu correo electrónico para restablecer tu contraseña.'

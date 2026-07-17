@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch, type PropType } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { AlertCircle } from 'lucide-vue-next'
 
@@ -12,6 +12,10 @@ const props = defineProps({
   showCancel: {
     type: Boolean,
     default: true
+  },
+  equipment: {
+    type: Object as PropType<any>,
+    default: null
   }
 })
 
@@ -37,11 +41,29 @@ const errors = reactive({
 const brandErrorMsg = ref('')
 
 const loadMarcas = async () => {
-  const { data, error } = await supabase.from('marcas').select('*').order('nombre')
+  const { data, error } = await supabase.from('marcas').select('*').is('deleted_at', null).order('nombre')
   if (!error) marcas.value = data ?? []
 }
 
 onMounted(loadMarcas)
+
+const showReactivateConfirm = ref(false)
+const reactivateCandidate = ref<any>(null)
+
+watch(() => props.equipment, (newVal) => {
+  if (newVal) {
+    form.id_marca = newVal.id_marca || null
+    form.modelo = newVal.modelo || ''
+  } else {
+    form.id_marca = null
+    form.modelo = ''
+  }
+  errors.id_marca = ''
+  errors.modelo = ''
+  errorMsg.value = ''
+  showReactivateConfirm.value = false
+  reactivateCandidate.value = null
+}, { immediate: true })
 
 const createMarca = async () => {
   brandErrorMsg.value = ''
@@ -68,6 +90,37 @@ const createMarca = async () => {
   }
 }
 
+const reactivateEquipment = async () => {
+  if (!reactivateCandidate.value) return
+  
+  loading.value = true
+  errorMsg.value = ''
+  
+  const { data, error } = await supabase
+    .from('equipos')
+    .update({
+      deleted_at: null
+    })
+    .eq('id', reactivateCandidate.value.id)
+    .select('*, marcas(nombre)')
+    .single()
+    
+  loading.value = false
+  showReactivateConfirm.value = false
+  reactivateCandidate.value = null
+  
+  if (error) {
+    errorMsg.value = error.message
+    return
+  }
+  
+  // Reset form
+  form.id_marca = null
+  form.modelo = ''
+
+  emit('success', data)
+}
+
 const submit = async () => {
   errors.id_marca = ''
   errors.modelo = ''
@@ -86,15 +139,59 @@ const submit = async () => {
 
   errorMsg.value = ''
   loading.value = true
+
+  // Validar marca y modelo duplicado en eliminados (solo en creación)
+  if (!props.equipment?.id && form.id_marca && form.modelo.trim()) {
+    const { data: existingDeleted, error: checkError } = await supabase
+      .from('equipos')
+      .select('*, marcas(nombre)')
+      .eq('id_marca', form.id_marca)
+      .eq('modelo', form.modelo.trim())
+      .not('deleted_at', 'is', null)
+      .limit(1)
+
+    if (checkError) {
+      errorMsg.value = checkError.message
+      loading.value = false
+      return
+    }
+
+    if (existingDeleted && existingDeleted.length > 0) {
+      loading.value = false
+      reactivateCandidate.value = existingDeleted[0]
+      showReactivateConfirm.value = true
+      return
+    }
+  }
   
-  const { data, error } = await supabase
-    .from('equipos')
-    .insert({
-      id_marca: form.id_marca,
-      modelo: form.modelo
-    })
-    .select('*, marcas(nombre)')
-    .single()
+  let data, error;
+  
+  if (props.equipment && props.equipment.id) {
+    // Editar equipo
+    const response = await supabase
+      .from('equipos')
+      .update({
+        id_marca: form.id_marca,
+        modelo: form.modelo.trim()
+      })
+      .eq('id', props.equipment.id)
+      .select('*, marcas(nombre)')
+      .single()
+    data = response.data
+    error = response.error
+  } else {
+    // Crear equipo
+    const response = await supabase
+      .from('equipos')
+      .insert({
+        id_marca: form.id_marca,
+        modelo: form.modelo.trim()
+      })
+      .select('*, marcas(nombre)')
+      .single()
+    data = response.data
+    error = response.error
+  }
 
   loading.value = false
 
@@ -113,6 +210,10 @@ const submit = async () => {
 
 <template>
   <form @submit.prevent="submit" novalidate class="space-y-4">
+    <h3 class="text-base font-bold text-slate-800 border-b border-slate-100 pb-2">
+      {{ props.equipment ? 'Editar Equipo' : 'Registrar Nuevo Equipo' }}
+    </h3>
+
     <div>
       <label class="block text-sm font-semibold text-slate-700 mb-1">Marca</label>
       <div class="flex gap-2">
@@ -177,7 +278,7 @@ const submit = async () => {
         :disabled="loading"
         class="px-4 py-2 bg-slate-950 text-white rounded-xl text-sm font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50"
       >
-        {{ loading ? 'Guardando...' : 'Guardar Equipo' }}
+        {{ loading ? 'Guardando...' : (props.equipment ? 'Guardar Cambios' : 'Guardar Equipo') }}
       </button>
     </div>
   </form>
@@ -217,6 +318,49 @@ const submit = async () => {
           class="px-4 py-2 bg-slate-950 text-white rounded-xl text-sm font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50"
         >
           Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE REACTIVACIÓN -->
+  <div 
+    v-if="showReactivateConfirm" 
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+  >
+    <div 
+      class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200"
+      @click.stop
+    >
+      <h3 class="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
+        <AlertCircle class="h-5 w-5 text-amber-500" />
+        Equipo eliminado encontrado
+      </h3>
+      <p class="text-sm text-slate-500 mb-4">
+        Ya existe un equipo registrado con esta marca y modelo que fue eliminado anteriormente. ¿Deseas reactivarlo?
+      </p>
+      
+      <div class="bg-slate-50 p-4 rounded-2xl mb-6 text-xs space-y-2 border border-slate-100">
+        <p class="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">Datos del equipo guardado:</p>
+        <p class="text-slate-800"><span class="font-bold">Marca:</span> {{ reactivateCandidate.marcas?.nombre }}</p>
+        <p class="text-slate-800"><span class="font-bold">Modelo:</span> {{ reactivateCandidate.modelo }}</p>
+        <p v-if="reactivateCandidate.deleted_at" class="text-slate-400 italic">Eliminado el: {{ new Date(reactivateCandidate.deleted_at).toLocaleString() }}</p>
+      </div>
+
+      <div class="flex justify-end gap-2.5">
+        <button 
+          type="button" 
+          @click="showReactivateConfirm = false; reactivateCandidate = null"
+          class="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 text-slate-700 transition-all active:scale-[0.98]"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          @click="reactivateEquipment"
+          class="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 text-white rounded-xl text-sm font-semibold transition-all active:scale-[0.98]"
+        >
+          Sí, reactivar equipo
         </button>
       </div>
     </div>

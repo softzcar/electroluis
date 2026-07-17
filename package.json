@@ -17,6 +17,7 @@
     "@vueuse/core": "^14.2.1",
     "lucide-vue-next": "^1.0.0",
     "nuxt": "^4.4.8",
+    "pg": "^8.22.0",
     "pinia": "^3.0.4",
     "primevue": "^4.5.4",
     "tailwindcss": "^4.2.2",

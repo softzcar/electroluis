@@ -48,9 +48,9 @@ const loadData = async () => {
     { data: eq, error: eqErr },
     { data: rep, error: repErr }
   ] = await Promise.all([
-    supabase.from('clientes').select('*').order('nombre'),
-    supabase.from('equipos').select('*, marcas(nombre)'),
-    supabase.from('repuestos').select('*').order('nombre')
+    supabase.from('clientes').select('*').is('deleted_at', null).order('nombre'),
+    supabase.from('equipos').select('*, marcas(nombre)').is('deleted_at', null),
+    supabase.from('repuestos').select('*').is('deleted_at', null).order('nombre')
   ])
 
   if (clErr) errorMsg.value = clErr.message

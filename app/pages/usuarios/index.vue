@@ -52,6 +52,9 @@ const loadUsers = async () => {
 
 onMounted(loadUsers)
 
+const showReactivateConfirm = ref(false)
+const reactivateCandidate = ref<any>(null)
+
 const resetForm = () => {
   form.id = null
   form.nombre = ''
@@ -61,6 +64,9 @@ const resetForm = () => {
   errors.nombre = ''
   errors.email = ''
   errors.password = ''
+
+  showReactivateConfirm.value = false
+  reactivateCandidate.value = null
 }
 
 const editUser = (user: any) => {
@@ -69,6 +75,38 @@ const editUser = (user: any) => {
   form.nombre = user.nombre
   form.email = user.email
   // La contraseña queda vacía (solo se rellena si se desea cambiar)
+}
+
+const reactivateUser = async () => {
+  if (!reactivateCandidate.value) return
+  
+  submitting.value = true
+  errorMsg.value = ''
+  successMsg.value = ''
+  
+  try {
+    const { error } = await supabase.rpc('admin_reactivate_user', {
+      user_id: reactivateCandidate.value.id,
+      new_password: form.password || null,
+      new_nombre: form.nombre.trim()
+    })
+    
+    if (error) throw error
+    
+    successMsg.value = 'Usuario reactivado correctamente.'
+    showReactivateConfirm.value = false
+    reactivateCandidate.value = null
+    resetForm()
+    await loadUsers()
+    
+    setTimeout(() => {
+      successMsg.value = ''
+    }, 4000)
+  } catch (err: any) {
+    errorMsg.value = err.message || 'Error al reactivar el usuario.'
+  } finally {
+    submitting.value = false
+  }
 }
 
 const onSubmit = async () => {
@@ -117,6 +155,19 @@ const onSubmit = async () => {
       if (updateErr) throw updateErr
       successMsg.value = 'Usuario actualizado correctamente.'
     } else {
+      // Validar si el email coincide con un usuario eliminado
+      const { data: existingDeleted, error: checkError } = await supabase
+        .rpc('get_deleted_user_by_email', { email_to_check: form.email.trim() })
+
+      if (checkError) throw checkError
+
+      if (existingDeleted && existingDeleted.length > 0) {
+        reactivateCandidate.value = existingDeleted[0]
+        showReactivateConfirm.value = true
+        submitting.value = false
+        return
+      }
+
       // Crear nuevo usuario
       const { error: createErr } = await supabase.rpc('admin_create_user', {
         user_email: form.email.trim(),
@@ -491,6 +542,49 @@ $$ language plpgsql security definer;
           class="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-md hover:shadow-red-600/20"
         >
           Sí, eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE REACTIVACIÓN -->
+  <div 
+    v-if="showReactivateConfirm" 
+    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+  >
+    <div 
+      class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200"
+      @click.stop
+    >
+      <h3 class="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
+        <AlertCircle class="h-5 w-5 text-amber-500" />
+        Operador eliminado encontrado
+      </h3>
+      <p class="text-sm text-slate-500 mb-4">
+        Ya existe un operador registrado con este correo electrónico que fue eliminado anteriormente. ¿Deseas reactivarlo con los nuevos datos?
+      </p>
+      
+      <div class="bg-slate-50 p-4 rounded-2xl mb-6 text-xs space-y-2 border border-slate-100">
+        <p class="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">Datos del operador guardado:</p>
+        <p class="text-slate-800"><span class="font-bold">Nombre:</span> {{ reactivateCandidate.nombre }}</p>
+        <p class="text-slate-800"><span class="font-bold">Correo:</span> {{ reactivateCandidate.email }}</p>
+        <p v-if="reactivateCandidate.deleted_at" class="text-slate-400 italic">Eliminado el: {{ new Date(reactivateCandidate.deleted_at).toLocaleString() }}</p>
+      </div>
+
+      <div class="flex justify-end gap-2.5">
+        <button 
+          type="button" 
+          @click="showReactivateConfirm = false; reactivateCandidate = null"
+          class="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 text-slate-700 transition-all active:scale-[0.98]"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          @click="reactivateUser"
+          class="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 text-white rounded-xl text-sm font-semibold transition-all active:scale-[0.98]"
+        >
+          Sí, reactivar operador
         </button>
       </div>
     </div>
