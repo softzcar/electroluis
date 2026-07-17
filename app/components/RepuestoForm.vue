@@ -183,7 +183,7 @@ const submit = async () => {
   
   let hasError = false
 
-  if (errors.codigo_barras) {
+  if (errors.codigo_barras || showReactivateModal.value) {
     hasError = true
   }
   if (!form.nombre.trim()) {

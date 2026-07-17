@@ -83,28 +83,39 @@ const reactivateClient = async () => {
 }
 
 const checkPhone = async () => {
-  if (props.client?.id) return
-  
   const phone = form.telefono.trim()
   if (!phone) return
 
   errorMsg.value = ''
   
-  const { data: existingDeleted, error: checkError } = await supabase
+  let query = supabase
     .from('clientes')
     .select('*')
     .eq('telefono', phone)
-    .not('deleted_at', 'is', null)
-    .limit(1)
+
+  if (props.client?.id) {
+    query = query.neq('id', props.client.id)
+  }
+  
+  const { data: existing, error: checkError } = await query.limit(1)
 
   if (checkError) {
     errorMsg.value = checkError.message
     return
   }
 
-  if (existingDeleted && existingDeleted.length > 0) {
-    reactivateCandidate.value = existingDeleted[0]
-    showReactivateConfirm.value = true
+  if (existing && existing.length > 0) {
+    const matched = existing[0]
+    if (matched.deleted_at) {
+      if (!props.client?.id) {
+        reactivateCandidate.value = matched
+        showReactivateConfirm.value = true
+      } else {
+        errorMsg.value = `Este número telefónico ya pertenece a un cliente eliminado: "${matched.nombre}".`
+      }
+    } else {
+      errorMsg.value = `Este número telefónico ya está registrado para el cliente activo: "${matched.nombre}".`
+    }
   }
 }
 
@@ -119,14 +130,18 @@ const submit = async () => {
   errorMsg.value = ''
   loading.value = true
 
-  // Validar teléfono duplicado en eliminados (solo en creación)
-  if (!props.client?.id && form.telefono.trim()) {
-    const { data: existingDeleted, error: checkError } = await supabase
+  // Validar teléfono duplicado
+  if (form.telefono.trim()) {
+    let query = supabase
       .from('clientes')
       .select('*')
       .eq('telefono', form.telefono.trim())
-      .not('deleted_at', 'is', null)
-      .limit(1)
+
+    if (props.client?.id) {
+      query = query.neq('id', props.client.id)
+    }
+
+    const { data: existing, error: checkError } = await query.limit(1)
 
     if (checkError) {
       errorMsg.value = checkError.message
@@ -134,11 +149,23 @@ const submit = async () => {
       return
     }
 
-    if (existingDeleted && existingDeleted.length > 0) {
-      loading.value = false
-      reactivateCandidate.value = existingDeleted[0]
-      showReactivateConfirm.value = true
-      return
+    if (existing && existing.length > 0) {
+      const matched = existing[0]
+      if (matched.deleted_at) {
+        if (!props.client?.id) {
+          loading.value = false
+          reactivateCandidate.value = matched
+          showReactivateConfirm.value = true
+        } else {
+          errorMsg.value = `Este número telefónico ya pertenece a un cliente eliminado: "${matched.nombre}".`
+          loading.value = false
+        }
+        return
+      } else {
+        errorMsg.value = `Este número telefónico ya está registrado para el cliente activo: "${matched.nombre}".`
+        loading.value = false
+        return
+      }
     }
   }
   

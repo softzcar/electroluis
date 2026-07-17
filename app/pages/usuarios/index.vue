@@ -109,6 +109,38 @@ const reactivateUser = async () => {
   }
 }
 
+const checkEmail = async () => {
+  const email = form.email.trim()
+  if (!email) return
+
+  errors.email = ''
+  errorMsg.value = ''
+
+  // 1. Validar si ya está activo
+  const targetEmail = email.toLowerCase()
+  const existsActive = usuarios.value.some(u => u.email.toLowerCase() === targetEmail && u.id !== form.id)
+  if (existsActive) {
+    errors.email = 'Este correo electrónico ya pertenece a un operador activo.'
+    return
+  }
+
+  // 2. Validar si está eliminado (para reactivación - solo al crear)
+  if (!form.id) {
+    const { data: existingDeleted, error: checkError } = await supabase
+      .rpc('get_deleted_user_by_email', { email_to_check: email })
+
+    if (checkError) {
+      errorMsg.value = checkError.message
+      return
+    }
+
+    if (existingDeleted && existingDeleted.length > 0) {
+      reactivateCandidate.value = existingDeleted[0]
+      showReactivateConfirm.value = true
+    }
+  }
+}
+
 const onSubmit = async () => {
   errors.nombre = ''
   errors.email = ''
@@ -127,6 +159,13 @@ const onSubmit = async () => {
   } else if (!/\S+@\S+\.\S+/.test(form.email)) {
     errors.email = 'El formato del correo electrónico no es válido.'
     hasError = true
+  } else {
+    const targetEmail = form.email.trim().toLowerCase()
+    const existsActive = usuarios.value.some(u => u.email.toLowerCase() === targetEmail && u.id !== form.id)
+    if (existsActive) {
+      errors.email = 'Este correo electrónico ya pertenece a un operador activo.'
+      hasError = true
+    }
   }
   
   if (!form.id && !form.password) {
@@ -367,6 +406,8 @@ $$ language plpgsql security definer;
                     errors.email ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
                   ]"
                   @input="errors.email = ''"
+                  @blur="checkEmail"
+                  @change="checkEmail"
                 >
               </div>
               <Transition name="fade">
