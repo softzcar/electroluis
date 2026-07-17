@@ -28,6 +28,9 @@ const errors = reactive({
   password: ''
 })
 
+const showReactivateConfirm = ref(false)
+const reactivateCandidate = ref<any>(null)
+
 const isFormDisabled = computed(() => !!errors.email || showReactivateConfirm.value)
 
 const loadUsers = async () => {
@@ -53,9 +56,6 @@ const loadUsers = async () => {
 }
 
 onMounted(loadUsers)
-
-const showReactivateConfirm = ref(false)
-const reactivateCandidate = ref<any>(null)
 
 const resetForm = () => {
   form.id = null
