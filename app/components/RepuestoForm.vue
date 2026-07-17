@@ -147,10 +147,12 @@ const reactivateRepuesto = async () => {
   if (!deletedRepuestoFound.value) return
   
   loading.value = true
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('repuestos')
     .update({ deleted_at: null })
     .eq('id', deletedRepuestoFound.value.id)
+    .select('*, categorias(nombre)')
+    .single()
     
   loading.value = false
   if (error) {
@@ -159,10 +161,10 @@ const reactivateRepuesto = async () => {
   }
   
   showReactivateModal.value = false
+  const reactivatedItem = data
   deletedRepuestoFound.value = null
-  form.codigo_barras = ''
   
-  emit('success', null)
+  emit('success', { reactivate: true, item: reactivatedItem })
 }
 
 // Escuchar el escáner de código de barras

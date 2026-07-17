@@ -34,8 +34,12 @@ const cancelEdit = () => {
   editingRepuesto.value = null
 }
 
-const onSuccess = () => {
-  editingRepuesto.value = null
+const onSuccess = (payload?: any) => {
+  if (payload && payload.reactivate) {
+    editingRepuesto.value = payload.item
+  } else {
+    editingRepuesto.value = null
+  }
   loadData()
 }
 
