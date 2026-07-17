@@ -103,6 +103,7 @@ const checkPhone = async () => {
   if (!phone) return
 
   errorMsg.value = ''
+  errors.telefono = ''
   
   const { data: existing, error: checkError } = await supabase
     .rpc('get_client_by_phone_last_10', { phone_to_check: phone })
@@ -121,11 +122,12 @@ const checkPhone = async () => {
       if (!props.client?.id) {
         reactivateCandidate.value = matched
         showReactivateConfirm.value = true
+        errors.telefono = `El teléfono pertenece a un cliente eliminado: "${matched.nombre}".`
       } else {
-        errorMsg.value = `Este número telefónico ya pertenece a un cliente eliminado: "${matched.nombre}".`
+        errors.telefono = `Este número telefónico ya pertenece a un cliente eliminado: "${matched.nombre}".`
       }
     } else {
-      errorMsg.value = `Este número telefónico ya está registrado para el cliente activo: "${matched.nombre}".`
+      errors.telefono = `Este número telefónico ya está registrado para el cliente activo: "${matched.nombre}".`
     }
   }
 }
