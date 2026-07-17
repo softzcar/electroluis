@@ -193,7 +193,7 @@ const submit = async () => {
     hasError = true
   }
   if (form.cantidad === null || form.cantidad === undefined || form.cantidad < 0) {
-    errors.cantidad = 'La cantidad inicial debe ser mayor o igual a 0.'
+    errors.cantidad = 'El stock debe ser mayor o igual a 0.'
     hasError = true
   }
 
@@ -339,7 +339,7 @@ const submit = async () => {
         
         <!-- Cantidad Inicial / Stock -->
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1">Cantidad Inicial</label>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Stock</label>
           <input 
             v-model.number="form.cantidad" 
             type="number" 
