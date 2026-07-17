@@ -120,7 +120,7 @@ const checkEmail = async () => {
 
   // 1. Validar si ya está activo
   const targetEmail = email.toLowerCase()
-  const existsActive = usuarios.value.some(u => u.email.toLowerCase() === targetEmail && u.id !== form.id)
+  const existsActive = usuarios.value.some(u => u?.email && u.email.toLowerCase() === targetEmail && u.id !== form.id)
   if (existsActive) {
     errors.email = 'Este correo electrónico ya pertenece a un operador activo.'
     return
@@ -163,7 +163,7 @@ const onSubmit = async () => {
     hasError = true
   } else {
     const targetEmail = form.email.trim().toLowerCase()
-    const existsActive = usuarios.value.some(u => u.email.toLowerCase() === targetEmail && u.id !== form.id)
+    const existsActive = usuarios.value.some(u => u?.email && u.email.toLowerCase() === targetEmail && u.id !== form.id)
     if (existsActive) {
       errors.email = 'Este correo electrónico ya pertenece a un operador activo.'
       hasError = true
@@ -502,16 +502,16 @@ $$ language plpgsql security definer;
                   <td class="px-5 py-3">
                     <div class="flex items-center gap-3">
                       <div class="h-9 w-9 bg-slate-900 text-white font-bold flex items-center justify-center rounded-xl text-sm shrink-0">
-                        {{ u.nombre.charAt(0).toUpperCase() }}
+                        {{ (u.nombre || 'U').charAt(0).toUpperCase() }}
                       </div>
                       <div class="min-w-0">
                         <p class="font-bold text-slate-800 truncate text-sm flex items-center gap-1.5">
-                          {{ u.nombre }}
+                          {{ u.nombre || 'Sin nombre' }}
                           <span v-if="u.id === currentUser?.id" class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-full font-semibold">
                             Tú (Activo)
                           </span>
                         </p>
-                        <p class="text-[10px] text-slate-400">Registrado: {{ new Date(u.created_at).toLocaleDateString() }}</p>
+                        <p class="text-[10px] text-slate-400">Registrado: {{ u.created_at ? new Date(u.created_at).toLocaleDateString() : '' }}</p>
                       </div>
                     </div>
                   </td>
