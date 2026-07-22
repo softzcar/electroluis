@@ -96,6 +96,7 @@ const loadMovimientos = async () => {
         descripcion,
         created_at,
         id_cliente,
+        incluye_software,
         clientes(id, nombre, telefono, ubicacion_geografica, rif),
         movimientos_equipos(
           id,
