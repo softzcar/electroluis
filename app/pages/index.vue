@@ -71,7 +71,8 @@ const filteredClientes = computed(() => {
   const q = clientQuery.value.toLowerCase()
   return clientes.value.filter(c => 
     c.nombre?.toLowerCase().includes(q) || 
-    c.telefono?.includes(q)
+    c.telefono?.includes(q) ||
+    c.rif?.toLowerCase().includes(q)
   )
 })
 
@@ -400,7 +401,8 @@ const submitMovement = async () => {
                 >
                   <div>
                     <p class="font-semibold text-slate-800">{{ cli.nombre }}</p>
-                    <p class="text-xs text-slate-400">{{ cli.ubicacion_geografica || 'Sin ubicación' }}</p>
+                    <p class="text-xs text-slate-500 font-medium" v-if="cli.rif">RIF: {{ cli.rif }}</p>
+                    <p class="text-xs text-slate-400">{{ cli.ubicacion_geografica || 'Sin domicilio fiscal' }}</p>
                   </div>
                   <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-mono">
                     {{ cli.telefono || 'Sin teléfono' }}
@@ -433,7 +435,10 @@ const submitMovement = async () => {
               </div>
               <div>
                 <p class="font-bold text-slate-800 text-sm">{{ selectedClient.nombre }}</p>
-                <p class="text-xs text-slate-500">{{ selectedClient.telefono || 'Sin teléfono' }} • {{ selectedClient.ubicacion_geografica || 'Sin ubicación' }}</p>
+                <p class="text-xs text-slate-500">
+                  <span v-if="selectedClient.rif" class="font-semibold">RIF: {{ selectedClient.rif }} • </span>
+                  {{ selectedClient.telefono || 'Sin teléfono' }} • {{ selectedClient.ubicacion_geografica || 'Sin domicilio fiscal' }}
+                </p>
               </div>
             </div>
             <button 

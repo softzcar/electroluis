@@ -60,6 +60,7 @@ por equipo vía `movimientos_equipos`).
 - `id` PK
 - `nombre` text, not null
 - `telefono` text
+- `rif` text
 - `ubicacion_geografica` text
 - `created_at`, `updated_at`
 
@@ -102,3 +103,4 @@ Equipos atendidos en un movimiento.
 5. `add_codigo_barras_to_repuestos`
 6. `update_equipos_serial`
 7. `create_marcas`
+8. `20260722_add_rif_to_clientes`

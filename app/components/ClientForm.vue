@@ -26,6 +26,7 @@ const errorMsg = ref('')
 const form = reactive({
   nombre: '',
   telefono: '',
+  rif: '',
   ubicacion_geografica: ''
 })
 
@@ -42,6 +43,7 @@ const isFormDisabled = computed(() => !!errors.telefono || !!reactivateCandidate
 const clearForm = () => {
   form.nombre = ''
   form.telefono = ''
+  form.rif = ''
   form.ubicacion_geografica = ''
   errors.nombre = ''
   errors.telefono = ''
@@ -55,10 +57,12 @@ watch(() => props.client, (newVal) => {
   if (newVal) {
     form.nombre = newVal.nombre || ''
     form.telefono = newVal.telefono || ''
+    form.rif = newVal.rif || ''
     form.ubicacion_geografica = newVal.ubicacion_geografica || ''
   } else {
     form.nombre = ''
     form.telefono = ''
+    form.rif = ''
     form.ubicacion_geografica = ''
   }
   errors.nombre = ''
@@ -185,6 +189,7 @@ const submit = async () => {
       .update({
         nombre: form.nombre.trim(),
         telefono: form.telefono || null,
+        rif: form.rif.trim() || null,
         ubicacion_geografica: form.ubicacion_geografica || null
       })
       .eq('id', props.client.id)
@@ -199,6 +204,7 @@ const submit = async () => {
       .insert({
         nombre: form.nombre.trim(),
         telefono: form.telefono || null,
+        rif: form.rif.trim() || null,
         ubicacion_geografica: form.ubicacion_geografica || null
       })
       .select()
@@ -217,6 +223,7 @@ const submit = async () => {
   // Reset form
   form.nombre = ''
   form.telefono = ''
+  form.rif = ''
   form.ubicacion_geografica = ''
 
   emit('success', data)
@@ -250,11 +257,11 @@ const submit = async () => {
     </div>
 
     <div>
-      <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre</label>
+      <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre o Razón Social</label>
       <input 
         v-model="form.nombre" 
         :disabled="isFormDisabled"
-        placeholder="Ej. Juan Pérez"
+        placeholder="Ej. Juan Pérez o Distribuidora Luis C.A."
         :class="[
           'w-full px-3.5 py-2 border rounded-xl focus:outline-none transition-all text-sm disabled:opacity-50 disabled:bg-slate-50',
           errors.nombre ? 'border-red-500 focus:ring-2 focus:ring-red-100 bg-red-50/20' : 'border-slate-200 focus:ring-2 focus:ring-slate-950'
@@ -267,9 +274,19 @@ const submit = async () => {
         </span>
       </Transition>
     </div>
+
+    <div>
+      <label class="block text-sm font-semibold text-slate-700 mb-1">RIF</label>
+      <input 
+        v-model="form.rif" 
+        :disabled="isFormDisabled"
+        placeholder="Ej. V-12345678-9"
+        class="w-full px-3.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-50"
+      >
+    </div>
     
     <div>
-      <label class="block text-sm font-semibold text-slate-700 mb-1">Ubicación</label>
+      <label class="block text-sm font-semibold text-slate-700 mb-1">Domicilio Fiscal</label>
       <input 
         v-model="form.ubicacion_geografica" 
         :disabled="isFormDisabled"
@@ -325,9 +342,10 @@ const submit = async () => {
       
       <div class="bg-slate-50 p-4 rounded-2xl mb-6 text-xs space-y-2 border border-slate-100">
         <p class="text-slate-500 font-semibold uppercase tracking-wider text-[10px]">Datos del cliente guardado:</p>
-        <p class="text-slate-800"><span class="font-bold">Nombre:</span> {{ reactivateCandidate.nombre }}</p>
+        <p class="text-slate-800"><span class="font-bold">Nombre o Razón Social:</span> {{ reactivateCandidate.nombre }}</p>
         <p class="text-slate-800"><span class="font-bold">Teléfono:</span> {{ reactivateCandidate.telefono }}</p>
-        <p class="text-slate-800"><span class="font-bold">Ubicación:</span> {{ reactivateCandidate.ubicacion_geografica || '—' }}</p>
+        <p class="text-slate-800"><span class="font-bold">RIF:</span> {{ reactivateCandidate.rif || '—' }}</p>
+        <p class="text-slate-800"><span class="font-bold">Domicilio Fiscal:</span> {{ reactivateCandidate.ubicacion_geografica || '—' }}</p>
         <p v-if="reactivateCandidate.deleted_at" class="text-slate-400 italic">Eliminado el: {{ new Date(reactivateCandidate.deleted_at).toLocaleString() }}</p>
       </div>
 

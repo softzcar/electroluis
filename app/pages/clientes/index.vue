@@ -78,22 +78,24 @@ const deleteRecord = async (id: number) => {
       <table class="w-full text-sm">
         <thead class="bg-slate-50 text-left text-slate-600 border-b border-slate-100">
           <tr>
-            <th class="px-5 py-3 font-semibold">Nombre</th>
+            <th class="px-5 py-3 font-semibold">Nombre o Razón Social</th>
             <th class="px-5 py-3 font-semibold">Teléfono</th>
-            <th class="px-5 py-3 font-semibold">Ubicación</th>
+            <th class="px-5 py-3 font-semibold">RIF</th>
+            <th class="px-5 py-3 font-semibold">Domicilio Fiscal</th>
             <th class="px-5 py-3 font-semibold text-right">Acciones</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td class="px-5 py-4 text-slate-500" colspan="4">Cargando clientes...</td>
+            <td class="px-5 py-4 text-slate-500" colspan="5">Cargando clientes...</td>
           </tr>
           <tr v-else-if="clientes.length === 0">
-            <td class="px-5 py-4 text-slate-500 text-center" colspan="4">No hay clientes registrados aún.</td>
+            <td class="px-5 py-4 text-slate-500 text-center" colspan="5">No hay clientes registrados aún.</td>
           </tr>
           <tr v-for="cli in clientes" v-else :key="cli.id" class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
             <td class="px-5 py-3 font-medium text-slate-800">{{ cli.nombre }}</td>
             <td class="px-5 py-3 text-slate-600">{{ cli.telefono || '—' }}</td>
+            <td class="px-5 py-3 text-slate-600">{{ cli.rif || '—' }}</td>
             <td class="px-5 py-3 text-slate-600">{{ cli.ubicacion_geografica || '—' }}</td>
             <td class="px-5 py-3 text-right">
               <div class="flex items-center justify-end gap-1">

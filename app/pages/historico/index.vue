@@ -87,7 +87,7 @@ const loadMovimientos = async () => {
         descripcion,
         created_at,
         id_cliente,
-        clientes(id, nombre, telefono, ubicacion_geografica),
+        clientes(id, nombre, telefono, ubicacion_geografica, rif),
         movimientos_equipos(
           id,
           nro_serie,
@@ -148,7 +148,8 @@ const filteredClientes = computed(() => {
   const q = clientQuery.value.toLowerCase()
   return clientes.value.filter(c => 
     c.nombre?.toLowerCase().includes(q) || 
-    c.telefono?.toLowerCase().includes(q)
+    c.telefono?.toLowerCase().includes(q) ||
+    c.rif?.toLowerCase().includes(q)
   )
 })
 
@@ -546,6 +547,7 @@ const imprimirReporte = () => {
                   class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-50 last:border-0 truncate"
                 >
                   <p class="font-bold text-slate-800">{{ c.nombre }}</p>
+                  <p class="text-[10px] text-slate-500 font-semibold" v-if="c.rif">RIF: {{ c.rif }}</p>
                   <p class="text-[10px] text-slate-400 font-mono">{{ c.telefono || 'Sin teléfono' }}</p>
                 </div>
                 <div v-if="filteredClientes.length === 0" class="px-4 py-3 text-xs text-slate-400 text-center">
@@ -819,13 +821,17 @@ const imprimirReporte = () => {
                   Llamar
                 </a>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                 <div>
                   <span class="text-slate-400 block">Teléfono</span>
                   <span class="font-semibold text-slate-800 font-mono">{{ mov.clientes?.telefono || '—' }}</span>
                 </div>
                 <div>
-                  <span class="text-slate-400 block">Dirección</span>
+                  <span class="text-slate-400 block">RIF</span>
+                  <span class="font-semibold text-slate-800 font-mono">{{ mov.clientes?.rif || '—' }}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block">Domicilio Fiscal</span>
                   <span class="font-semibold text-slate-800">{{ mov.clientes?.ubicacion_geografica || '—' }}</span>
                 </div>
               </div>
