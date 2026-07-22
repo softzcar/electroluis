@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useSupabaseClient, useSupabaseUser } from '#imports'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
-import { Users, Cpu, Wrench, Search, Trash2, Plus, Minus, Barcode, ClipboardList, Check, AlertTriangle } from 'lucide-vue-next'
+import { Users, Cpu, Wrench, Search, Trash2, Plus, Minus, Barcode, ClipboardList, Check, AlertTriangle, Key } from 'lucide-vue-next'
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
@@ -11,6 +11,7 @@ const user = useSupabaseUser()
 const clientes = ref<any[]>([])
 const equipos = ref<any[]>([])
 const repuestos = ref<any[]>([])
+const licencias = ref<any[]>([])
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -35,10 +36,16 @@ const repuestoQuery = ref('')
 const showRepuestoDropdown = ref(false)
 const selectedRepuestos = ref<any[]>([]) // { id, nombre, codigo_barras, cantidad, stock }
 
+const licenciaQuery = ref('')
+const showLicenciaDropdown = ref(false)
+const selectedLicencias = ref<any[]>([]) // { id, nombre, keys: [''] }
+const incluyeSoftware = ref(false)
+
 // Estados de los Modales
 const showClientModal = ref(false)
 const showEquipmentModal = ref(false)
 const showRepuestoModal = ref(false)
+const showLicenciaModal = ref(false)
 
 // Cargar catálogos iniciales
 const loadData = async () => {
@@ -46,20 +53,24 @@ const loadData = async () => {
   const [
     { data: cl, error: clErr },
     { data: eq, error: eqErr },
-    { data: rep, error: repErr }
+    { data: rep, error: repErr },
+    { data: lic, error: licErr }
   ] = await Promise.all([
     supabase.from('clientes').select('*').is('deleted_at', null).order('nombre'),
     supabase.from('equipos').select('*, marcas(nombre)').is('deleted_at', null),
-    supabase.from('repuestos').select('*').is('deleted_at', null).order('nombre')
+    supabase.from('repuestos').select('*').is('deleted_at', null).order('nombre'),
+    supabase.from('licencias').select('*').is('deleted_at', null).order('nombre')
   ])
 
   if (clErr) errorMsg.value = clErr.message
   if (eqErr) errorMsg.value = eqErr.message
   if (repErr) errorMsg.value = repErr.message
+  if (licErr) errorMsg.value = licErr.message
 
   clientes.value = cl ?? []
   equipos.value = (eq ?? []).sort((a: any, b: any) => (a.marcas?.nombre || '').localeCompare(b.marcas?.nombre || ''))
   repuestos.value = rep ?? []
+  licencias.value = lic ?? []
   loading.value = false
 }
 
@@ -91,6 +102,14 @@ const filteredRepuestos = computed(() => {
   return repuestos.value.filter(r => 
     r.nombre?.toLowerCase().includes(q) || 
     r.codigo_barras?.toLowerCase().includes(q)
+  )
+})
+
+const filteredLicencias = computed(() => {
+  if (!licenciaQuery.value) return []
+  const q = licenciaQuery.value.toLowerCase()
+  return licencias.value.filter(l => 
+    l.nombre?.toLowerCase().includes(q)
   )
 })
 
@@ -173,6 +192,34 @@ const decrementRepuesto = (index: number) => {
   }
 }
 
+const selectLicencia = (lic: any) => {
+  const existing = selectedLicencias.value.find(item => item.id === lic.id)
+  if (!existing) {
+    selectedLicencias.value.push({
+      id: lic.id,
+      nombre: lic.nombre,
+      keys: ['']
+    })
+  }
+  licenciaQuery.value = ''
+  showLicenciaDropdown.value = false
+}
+
+const addKeyToLicencia = (index: number) => {
+  selectedLicencias.value[index].keys.push('')
+}
+
+const removeKeyFromLicencia = (licIndex: number, keyIndex: number) => {
+  selectedLicencias.value[licIndex].keys.splice(keyIndex, 1)
+  if (selectedLicencias.value[licIndex].keys.length === 0) {
+    selectedLicencias.value[licIndex].keys.push('')
+  }
+}
+
+const removeLicencia = (index: number) => {
+  selectedLicencias.value.splice(index, 1)
+}
+
 // Handlers de creación en modales
 const onClientCreated = (newClient: any) => {
   clientes.value.push(newClient)
@@ -190,6 +237,12 @@ const onRepuestoCreated = (newRep: any) => {
   repuestos.value.push(newRep)
   addRepuesto(newRep)
   showRepuestoModal.value = false
+}
+
+const onLicenciaCreated = (newLic: any) => {
+  licencias.value.push(newLic)
+  selectLicencia(newLic)
+  showLicenciaModal.value = false
 }
 
 // Integración del lector de código de barras
@@ -237,6 +290,17 @@ const submitMovement = async () => {
     return
   }
 
+  // VALIDACIÓN: Licencias vacías o sin claves
+  if (incluyeSoftware.value && selectedLicencias.value.length > 0) {
+    for (const lic of selectedLicencias.value) {
+      const keys = lic.keys.map((k: string) => k.trim()).filter(Boolean)
+      if (keys.length === 0) {
+        errorMsg.value = `La licencia "${lic.nombre}" requiere al menos una clave (key).`
+        return
+      }
+    }
+  }
+
   errorMsg.value = ''
   successMsg.value = ''
   submitting.value = true
@@ -259,7 +323,8 @@ const submitMovement = async () => {
       .insert({
         id_cliente: selectedClient.value.id,
         id_user: userId,
-        descripcion: form.descripcion || null
+        descripcion: form.descripcion || null,
+        incluye_software: incluyeSoftware.value
       })
       .select()
       .single()
@@ -306,11 +371,36 @@ const submitMovement = async () => {
       }
     }
 
+    // 4. Insertar licencias y sus keys
+    if (incluyeSoftware.value && selectedLicencias.value.length > 0) {
+      const licenseInserts = []
+      for (const lic of selectedLicencias.value) {
+        const keys = lic.keys.map((k: string) => k.trim()).filter(Boolean)
+        for (const key of keys) {
+          licenseInserts.push({
+            id_movimiento: newMovId,
+            id_licencia: lic.id,
+            key: key
+          })
+        }
+      }
+
+      if (licenseInserts.length > 0) {
+        const { error: licRelErr } = await supabase
+          .from('movimientos_licencias')
+          .insert(licenseInserts)
+
+        if (licRelErr) throw new Error(licRelErr.message)
+      }
+    }
+
     // Resetear formulario
     form.descripcion = ''
     selectedClient.value = null
     selectedEquipos.value = []
     selectedRepuestos.value = []
+    selectedLicencias.value = []
+    incluyeSoftware.value = false
     successMsg.value = '¡Movimiento registrado con éxito!'
     
     await loadData()
@@ -678,6 +768,133 @@ const submitMovement = async () => {
           </div>
         </div>
 
+        <!-- CARD: Switch Incluye Software -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex items-center justify-between">
+          <div class="space-y-0.5">
+            <span class="text-sm font-bold text-slate-800 block">5. ¿Incluye Software?</span>
+            <span class="text-xs text-slate-400 block">Activa esta opción si se instaló o configuró software o licencias</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="incluyeSoftware" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-950"></div>
+          </label>
+        </div>
+
+        <!-- CARD: Licencias (condicional) -->
+        <div v-if="incluyeSoftware" class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+          <div class="flex justify-between items-center">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Key class="h-5 w-5 text-slate-600" />
+              6. Licencias Instaladas
+            </h2>
+            <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-semibold">
+              {{ selectedLicencias.length }} items
+            </span>
+          </div>
+
+          <!-- Typeahead de Licencias -->
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <Search class="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+              <input
+                v-model="licenciaQuery"
+                type="text"
+                @focus="showLicenciaDropdown = true"
+                @blur="setTimeout(() => showLicenciaDropdown = false, 200)"
+                placeholder="Buscar licencia por nombre..."
+                class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-950 focus:outline-none bg-slate-50 focus:bg-white transition-all text-sm"
+              >
+              
+              <!-- Lista de sugerencias de Licencias -->
+              <div 
+                v-if="showLicenciaDropdown && licenciaQuery" 
+                class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100"
+              >
+                <div 
+                  v-for="lic in filteredLicencias" 
+                  :key="lic.id"
+                  @mousedown="selectLicencia(lic)"
+                  class="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex justify-between items-center text-sm"
+                >
+                  <div>
+                    <p class="font-bold text-slate-800">{{ lic.nombre }}</p>
+                  </div>
+                </div>
+                <div v-if="filteredLicencias.length === 0" class="px-4 py-4 text-center text-sm text-slate-400">
+                  No se encontraron licencias con "{{ licenciaQuery }}"
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              type="button"
+              @click="showLicenciaModal = true"
+              class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 rounded-2xl border border-slate-200 flex items-center justify-center transition-colors shrink-0"
+              title="Crear nueva licencia"
+            >
+              <Plus class="h-5 w-5" />
+            </button>
+          </div>
+
+          <!-- Lista de Licencias Seleccionadas -->
+          <div v-if="selectedLicencias.length > 0" class="space-y-4 max-h-96 overflow-y-auto pr-1">
+            <div 
+              v-for="(lic, licIndex) in selectedLicencias" 
+              :key="lic.id"
+              class="p-4 bg-slate-50/50 border border-slate-100 rounded-2xl space-y-3"
+            >
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <p class="font-bold text-slate-800 text-sm truncate">{{ lic.nombre }}</p>
+                <button 
+                  type="button" 
+                  @click="removeLicencia(licIndex)"
+                  class="text-xs text-red-500 hover:text-red-700 font-semibold transition-colors"
+                >
+                  Quitar Licencia
+                </button>
+              </div>
+
+              <!-- Lista de Keys para esta licencia -->
+              <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Claves / Keys de Activación</label>
+                
+                <div 
+                  v-for="(key, keyIndex) in lic.keys" 
+                  :key="keyIndex"
+                  class="flex items-center gap-2"
+                >
+                  <input
+                    v-model="lic.keys[keyIndex]"
+                    type="text"
+                    placeholder="Ej. XXXX-XXXX-XXXX-XXXX"
+                    class="flex-1 px-3 py-1.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-950 focus:outline-none bg-white transition-all text-xs font-mono"
+                  >
+                  <button 
+                    type="button" 
+                    @click="removeKeyFromLicencia(licIndex, keyIndex)"
+                    class="p-1.5 text-slate-400 hover:text-red-55 rounded-lg transition-colors"
+                    title="Eliminar Key"
+                  >
+                    <Trash2 class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <button 
+                  type="button"
+                  @click="addKeyToLicencia(licIndex)"
+                  class="text-xs text-slate-650 hover:text-slate-900 font-bold flex items-center gap-1 mt-1 transition-colors"
+                >
+                  <Plus class="h-3.5 w-3.5" />
+                  Añadir otra Key
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-center py-6 text-sm text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+            Ninguna licencia cargada en este movimiento.
+          </div>
+        </div>
+
         <!-- Alertas de Error -->
         <div v-if="errorMsg" class="flex items-start gap-2.5 bg-rose-50 text-rose-800 border border-rose-100 px-4 py-3 rounded-2xl text-sm shadow-sm">
           <AlertTriangle class="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
@@ -737,6 +954,17 @@ const submitMovement = async () => {
         Crear Nuevo Repuesto
       </h3>
       <RepuestoForm @success="onRepuestoCreated" @cancel="showRepuestoModal = false" />
+    </div>
+  </div>
+
+  <!-- MODAL: Crear Licencia -->
+  <div v-if="showLicenciaModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <Key class="h-5 w-5 text-slate-600" />
+        Crear Nueva Licencia
+      </h3>
+      <LicenseForm @success="onLicenciaCreated" @cancel="showLicenciaModal = false" />
     </div>
   </div>
 </template>

@@ -71,6 +71,7 @@ Registro de un servicio prestado (une cliente + usuario que atendió).
 - `id_cliente` → `clientes.id`, not null
 - `id_user` → `profiles.id`, not null
 - `descripcion` text
+- `incluye_software` boolean, not null, default false
 - `created_at`, `updated_at`
 
 Nota: sin seguimiento de estado/fechas de reparación por ahora (decisión explícita, solo se
@@ -94,6 +95,23 @@ Equipos atendidos en un movimiento.
 - `nro_serie` text
 - `created_at`, `updated_at`
 
+### licencias
+Catálogo de licencias de software.
+
+- `id` PK
+- `nombre` text, unique, not null
+- `deleted_at` timestamp with time zone
+- `created_at`, `updated_at`
+
+### movimientos_licencias
+Licencias instaladas en un movimiento.
+
+- `id` PK
+- `id_movimiento` → `movimientos.id`, not null, on delete cascade
+- `id_licencia` → `licencias.id`, not null
+- `key` text, not null
+- `created_at`, `updated_at`
+
 ## Migraciones aplicadas
 
 1. `create_profiles_and_auth_trigger`
@@ -104,3 +122,4 @@ Equipos atendidos en un movimiento.
 6. `update_equipos_serial`
 7. `create_marcas`
 8. `20260722_add_rif_to_clientes`
+9. `20260722_add_software_and_licenses`

@@ -4,7 +4,7 @@ import { useSupabaseClient } from '#imports'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
 import { 
   History, Users, Cpu, Wrench, Search, ChevronDown, ChevronUp, 
-  X, Filter, Calendar, Barcode, Hash, RefreshCw, Phone, Printer
+  X, Filter, Calendar, Barcode, Hash, RefreshCw, Phone, Printer, Key
 } from 'lucide-vue-next'
 
 const supabase = useSupabaseClient()
@@ -107,6 +107,15 @@ const loadMovimientos = async () => {
             id,
             nombre,
             codigo_barras
+          )
+        ),
+        movimientos_licencias(
+          id,
+          key,
+          id_licencia,
+          licencias(
+            id,
+            nombre
           )
         )
       `)
@@ -796,6 +805,12 @@ const imprimirReporte = () => {
                   {{ mov.movimientos_productos?.length || 0 }}
                 </span>
               </div>
+              <div v-if="mov.incluye_software" class="text-left sm:text-right">
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Software</span>
+                <span class="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-lg">
+                  Sí
+                </span>
+              </div>
               <div class="text-slate-400 pl-2">
                 <ChevronDown v-if="!expandedMovimientos[mov.id]" class="h-5 w-5" />
                 <ChevronUp v-else class="h-5 w-5" />
@@ -900,6 +915,33 @@ const imprimirReporte = () => {
                 </div>
               </div>
             </div>
+
+            <!-- Licencias -->
+            <div v-if="mov.movimientos_licencias?.length > 0" class="space-y-2">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400 block px-1">Licencias Instaladas</span>
+              <div class="space-y-2">
+                <div 
+                  v-for="ml in mov.movimientos_licencias" 
+                  :key="ml.id"
+                  class="bg-white border border-slate-100 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="p-2 bg-slate-50 border border-slate-100 rounded-xl text-slate-650">
+                      <Key class="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p class="font-bold text-slate-800 text-xs">{{ ml.licencias?.nombre || 'Licencia Desconocida' }}</p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Clave / Key</span>
+                    <span class="text-xs font-semibold text-slate-850 font-mono bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                      {{ ml.key }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -930,7 +972,7 @@ const imprimirReporte = () => {
             <th class="p-1.5 text-left w-28 border-r border-slate-300">Fecha</th>
             <th class="p-1.5 text-left w-36 border-r border-slate-300">Cliente</th>
             <th class="p-1.5 text-left border-r border-slate-300">Equipos & Seriales</th>
-            <th class="p-1.5 text-left border-r border-slate-300">Repuestos Usados</th>
+            <th class="p-1.5 text-left border-r border-slate-300">Repuestos & Licencias</th>
             <th class="p-1.5 text-left">Trabajo Realizado</th>
           </tr>
         </thead>
@@ -950,11 +992,20 @@ const imprimirReporte = () => {
                 <span class="text-slate-500 block">S/N: <span class="font-mono">{{ me.nro_serie || '—' }}</span></span>
               </div>
             </td>
-            <td class="p-1.5 text-[8px] border-r border-slate-200 space-y-0.5">
-              <div v-for="mp in mov.movimientos_productos" :key="mp.id" class="leading-tight">
-                • {{ mp.repuestos?.nombre }} <span class="font-bold">(x{{ mp.cantidad }})</span>
+            <td class="p-1.5 text-[8px] border-r border-slate-200 space-y-1">
+              <div v-if="mov.movimientos_productos?.length > 0" class="space-y-0.5 pb-1">
+                <p class="font-bold text-slate-500 uppercase text-[6px] tracking-wider mb-0.5">Repuestos:</p>
+                <div v-for="mp in mov.movimientos_productos" :key="mp.id" class="leading-tight">
+                  • {{ mp.repuestos?.nombre }} <span class="font-bold">(x{{ mp.cantidad }})</span>
+                </div>
               </div>
-              <span v-if="!mov.movimientos_productos || mov.movimientos_productos.length === 0" class="text-slate-400 font-medium">—</span>
+              <div v-if="mov.movimientos_licencias?.length > 0" class="space-y-0.5 border-t border-slate-100 pt-1">
+                <p class="font-bold text-slate-500 uppercase text-[6px] tracking-wider mb-0.5">Licencias:</p>
+                <div v-for="ml in mov.movimientos_licencias" :key="ml.id" class="leading-tight">
+                  • {{ ml.licencias?.nombre }} <span class="font-semibold font-mono text-[6px]">({{ ml.key }})</span>
+                </div>
+              </div>
+              <span v-if="(!mov.movimientos_productos || mov.movimientos_productos.length === 0) && (!mov.movimientos_licencias || mov.movimientos_licencias.length === 0)" class="text-slate-400 font-medium">—</span>
             </td>
             <td class="p-1.5 text-[9px] text-slate-700 leading-normal">{{ mov.descripcion || '—' }}</td>
           </tr>
