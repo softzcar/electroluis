@@ -7,17 +7,36 @@ const route = useRoute()
 
 const isMobileMenuOpen = ref(false)
 
-const links = [
-  { to: '/', label: 'Movimientos', icon: ClipboardList },
-  { to: '/historico', label: 'Histórico', icon: History },
-  { to: '/repuestos', label: 'Repuestos', icon: Wrench },
-  { to: '/licencias', label: 'Licencias', icon: Key },
-  { to: '/existencias', label: 'Existencias', icon: Package },
-  { to: '/clientes', label: 'Clientes', icon: Users },
-  { to: '/equipos', label: 'Equipos', icon: Cpu },
-  { to: '/categorias', label: 'Categorías de repuestos', icon: Tags },
-  { to: '/marcas', label: 'Marcas', icon: Bookmark },
-  { to: '/usuarios', label: 'Usuarios', icon: UserCog }
+const navigation = [
+  {
+    links: [
+      { to: '/', label: 'Movimientos', icon: ClipboardList }
+    ]
+  },
+  {
+    title: 'Reportes',
+    links: [
+      { to: '/historico', label: 'Histórico de Movimientos', icon: History },
+      { to: '/existencias', label: 'Existencias de Repuestos', icon: Package }
+    ]
+  },
+  {
+    title: 'Catálogos',
+    links: [
+      { to: '/repuestos', label: 'Repuestos', icon: Wrench },
+      { to: '/categorias', label: 'Categorías de Repuestos', icon: Tags },
+      { to: '/licencias', label: 'Licencias', icon: Key },
+      { to: '/clientes', label: 'Clientes', icon: Users },
+      { to: '/equipos', label: 'Equipos', icon: Cpu },
+      { to: '/marcas', label: 'Marcas de Equipos', icon: Bookmark }
+    ]
+  },
+  {
+    title: 'Administración',
+    links: [
+      { to: '/usuarios', label: 'Usuarios', icon: UserCog }
+    ]
+  }
 ]
 
 const showLogoutConfirm = ref(false)
@@ -76,17 +95,22 @@ watch(() => route.path, () => {
         </button>
       </div>
 
-      <nav class="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        <NuxtLink
-          v-for="link in links"
-          :key="link.to"
-          :to="link.to"
-          class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all hover:bg-slate-800"
-          active-class="bg-slate-800 text-cyan-400 font-semibold"
-        >
-          <component :is="link.icon" :size="18" class="text-slate-400 group-hover:text-slate-100" />
-          {{ link.label }}
-        </NuxtLink>
+      <nav class="flex-1 px-2 py-4 space-y-4 overflow-y-auto">
+        <div v-for="(section, sIndex) in navigation" :key="sIndex" class="space-y-1">
+          <p v-if="section.title" class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-4">
+            {{ section.title }}
+          </p>
+          <NuxtLink
+            v-for="link in section.links"
+            :key="link.to"
+            :to="link.to"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all hover:bg-slate-800"
+            active-class="bg-slate-800 text-cyan-400 font-semibold"
+          >
+            <component :is="link.icon" :size="18" class="text-slate-400 group-hover:text-slate-100" />
+            {{ link.label }}
+          </NuxtLink>
+        </div>
       </nav>
 
       <button

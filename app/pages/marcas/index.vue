@@ -179,7 +179,7 @@ const deleteRecord = async (id: number) => {
 
 <template>
   <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold text-slate-800 mb-6">Marcas</h1>
+    <h1 class="text-2xl font-bold text-slate-800 mb-6">Marcas de Equipos</h1>
 
     <form class="bg-white p-5 rounded-lg shadow-sm mb-6 flex flex-col sm:flex-row gap-4 sm:items-end" @submit.prevent="submit">
       <div class="flex-1">

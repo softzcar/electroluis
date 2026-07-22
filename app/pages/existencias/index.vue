@@ -302,7 +302,7 @@ const imprimirReporte = () => {
           <Package class="h-6 w-6" />
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-slate-800">Existencias</h1>
+          <h1 class="text-2xl font-bold text-slate-800">Existencias de Repuestos</h1>
           <p class="text-xs text-slate-500">Reporte de stock actual de repuestos e historial de uso</p>
         </div>
       </div>

@@ -437,7 +437,7 @@ const imprimirReporte = () => {
           <History class="h-6 w-6" />
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-slate-800">Histórico</h1>
+          <h1 class="text-2xl font-bold text-slate-800">Histórico de Movimientos</h1>
           <p class="text-xs text-slate-500">Consulta y busca registros pasados de movimientos</p>
         </div>
       </div>
