@@ -85,8 +85,8 @@ watch(() => route.path, () => {
       class="fixed inset-y-0 left-0 w-60 bg-slate-900 text-slate-100 flex flex-col z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0"
       :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
     >
-      <div class="px-4 py-5 text-lg font-semibold border-b border-slate-800 flex justify-between items-center">
-        <span>Medic Play</span>
+      <div class="px-4 py-4 border-b border-slate-800 flex justify-between items-center">
+        <img src="/logo_medicpaly.png" alt="Medic Play" class="h-8 w-auto object-contain" />
         <!-- Botón para cerrar en móvil -->
         <button 
           class="md:hidden p-1.5 rounded-md hover:bg-slate-800 transition-colors focus:outline-none"
