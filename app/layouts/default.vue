@@ -23,10 +23,10 @@ const navigation = [
   {
     title: 'Catálogos',
     links: [
+      { to: '/clientes', label: 'Clientes', icon: Users },
+      { to: '/licencias', label: 'Licencias', icon: Key },
       { to: '/repuestos', label: 'Repuestos', icon: Wrench },
       { to: '/categorias', label: 'Categorías de Repuestos', icon: Tags },
-      { to: '/licencias', label: 'Licencias', icon: Key },
-      { to: '/clientes', label: 'Clientes', icon: Users },
       { to: '/equipos', label: 'Equipos', icon: Cpu },
       { to: '/marcas', label: 'Marcas de Equipos', icon: Bookmark }
     ]
