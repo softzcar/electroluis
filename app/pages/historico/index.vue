@@ -58,20 +58,29 @@ const showEquipmentDropdown = ref(false)
 // Estado de expansión de filas/tarjetas de movimientos
 const expandedMovimientos = ref<Record<number, boolean>>({})
 
+const licencias = ref<any[]>([])
+const softwareFilter = ref<'all' | 'with_software' | 'without_software'>('all')
+const licenseQuery = ref('')
+const selectedLicense = ref<any | null>(null)
+const showLicenseDropdown = ref(false)
+
 // Cargar catálogos iniciales
 const loadCatalogs = async () => {
   const [
     { data: cl },
     { data: br },
-    { data: eq }
+    { data: eq },
+    { data: lic }
   ] = await Promise.all([
     supabase.from('clientes').select('*').is('deleted_at', null).order('nombre'),
     supabase.from('marcas').select('*').is('deleted_at', null).order('nombre'),
-    supabase.from('equipos').select('*, marcas(nombre)').is('deleted_at', null).order('modelo')
+    supabase.from('equipos').select('*, marcas(nombre)').is('deleted_at', null).order('modelo'),
+    supabase.from('licencias').select('*').is('deleted_at', null).order('nombre')
   ])
   clientes.value = cl ?? []
   marcas.value = br ?? []
   equipos.value = eq ?? []
+  licencias.value = lic ?? []
 }
 
 // Cargar movimientos desde Supabase filtrados únicamente por rango de fecha
@@ -256,6 +265,21 @@ const selectEquipment = (eq: any) => {
   selectedModel.value = eq.modelo
 }
 
+// Licencias
+const filteredLicenses = computed(() => {
+  if (!licenseQuery.value) return []
+  const q = licenseQuery.value.toLowerCase()
+  return licencias.value.filter(l => l.nombre?.toLowerCase().includes(q))
+})
+
+const selectLicense = (lic: any) => {
+  selectedLicense.value = lic
+  licenseQuery.value = ''
+  showLicenseDropdown.value = false
+}
+
+const clearLicense = () => { selectedLicense.value = null }
+
 // Limpiar filtros específicos
 const clearClient = () => { selectedClient.value = null }
 const clearBrand = () => { 
@@ -277,6 +301,8 @@ const clearAllFilters = () => {
   selectedBrand.value = null
   selectedModel.value = null
   selectedEquipment.value = null
+  softwareFilter.value = 'all'
+  selectedLicense.value = null
   dateFrom.value = getPastDateString(30)
   dateTo.value = getTodayString()
 }
@@ -337,6 +363,18 @@ const filteredMovimientos = computed(() => {
       }
     }
 
+    // 6. Incluye Software
+    if (softwareFilter.value === 'with_software' && !mov.incluye_software) return false
+    if (softwareFilter.value === 'without_software' && mov.incluye_software) return false
+
+    // 7. Licencia específica
+    if (selectedLicense.value) {
+      const matchesLic = mov.movimientos_licencias?.some((ml: any) => 
+        ml.id_licencia === selectedLicense.value.id
+      )
+      if (!matchesLic) return false
+    }
+
     return true
   })
 })
@@ -350,6 +388,8 @@ const activeFiltersCount = computed(() => {
   if (selectedBrand.value) count++
   if (selectedModel.value) count++
   if (selectedEquipment.value) count++
+  if (softwareFilter.value !== 'all') count++
+  if (selectedLicense.value) count++
   return count
 })
 
@@ -420,6 +460,9 @@ const activeFiltersSummary = computed(() => {
   if (selectedModel.value) parts.push(`Modelo: "${selectedModel.value}"`)
   if (selectedEquipment.value) parts.push(`Equipo: "${selectedEquipment.value.marcas?.nombre} ${selectedEquipment.value.modelo}"`)
   if (serialQuery.value.trim()) parts.push(`Serial: "${serialQuery.value.trim()}"`)
+  if (softwareFilter.value === 'with_software') parts.push('Incluye Software: Sí')
+  if (softwareFilter.value === 'without_software') parts.push('Incluye Software: No')
+  if (selectedLicense.value) parts.push(`Licencia: "${selectedLicense.value.nombre}"`)
   return parts.join(' | ')
 })
 
@@ -683,6 +726,57 @@ const imprimirReporte = () => {
                 </div>
                 <div v-if="filteredEquipments.length === 0" class="px-4 py-3 text-xs text-slate-400 text-center">
                   Sin equipos disponibles
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Incluye Software -->
+          <div class="space-y-2">
+            <label class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+              <Key class="h-3.5 w-3.5" /> Incluye Software
+            </label>
+            <select 
+              v-model="softwareFilter"
+              class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm bg-white"
+            >
+              <option value="all">Todos los registros</option>
+              <option value="with_software">Solo con Software</option>
+              <option value="without_software">Solo sin Software</option>
+            </select>
+          </div>
+
+          <!-- Licencia Instalada (Typeahead) -->
+          <div class="space-y-2 relative">
+            <label class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+              <Key class="h-3.5 w-3.5" /> Licencia Instalada
+            </label>
+            <div v-if="selectedLicense" class="flex items-center justify-between bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl text-sm font-medium">
+              <span class="truncate text-slate-800">{{ selectedLicense.nombre }}</span>
+              <button @click="clearLicense" class="text-slate-400 hover:text-red-500 transition-colors p-0.5">
+                <X class="h-4 w-4" />
+              </button>
+            </div>
+            <div v-else>
+              <input 
+                v-model="licenseQuery"
+                type="text"
+                placeholder="Buscar por nombre de licencia..."
+                @focus="showLicenseDropdown = true"
+                class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none transition-shadow text-sm"
+              >
+              <!-- Dropdown -->
+              <div v-if="showLicenseDropdown && licenseQuery" class="absolute left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-slate-100 z-50 max-h-48 overflow-y-auto">
+                <div 
+                  v-for="l in filteredLicenses" 
+                  :key="l.id" 
+                  @click="selectLicense(l)"
+                  class="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-50 last:border-0 truncate font-semibold"
+                >
+                  {{ l.nombre }}
+                </div>
+                <div v-if="filteredLicenses.length === 0" class="px-4 py-3 text-xs text-slate-400 text-center">
+                  Sin coincidencias
                 </div>
               </div>
             </div>
