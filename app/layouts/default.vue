@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LayoutDashboard, Users, Cpu, Wrench, ClipboardList, Tags, LogOut, Menu as MenuIcon, X as XIcon, Bookmark, History, Package, UserCog } from 'lucide-vue-next'
+import { LayoutDashboard, Users, Cpu, Wrench, ClipboardList, Tags, LogOut, Menu as MenuIcon, X as XIcon, Bookmark, History, Package, UserCog, Key } from 'lucide-vue-next'
 
 const supabase = useSupabaseClient()
 const router = useRouter()
@@ -11,6 +11,7 @@ const links = [
   { to: '/', label: 'Movimientos', icon: ClipboardList },
   { to: '/historico', label: 'Histórico', icon: History },
   { to: '/repuestos', label: 'Repuestos', icon: Wrench },
+  { to: '/licencias', label: 'Licencias', icon: Key },
   { to: '/existencias', label: 'Existencias', icon: Package },
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/equipos', label: 'Equipos', icon: Cpu },
